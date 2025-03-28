@@ -1,41 +1,231 @@
-<!-- /public/participant.html -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>참가자 페이지</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>👤 참가자 페이지</title>
   <link rel="stylesheet" href="/css/styles.css" />
+  <style>
+    body { font-family: 'Jua', sans-serif; padding: 20px; background: #f0fbff; }
+    .hidden { display: none; }
+    section {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      max-width: 600px;
+      margin: auto;
+      margin-top: 20px;
+    }
+    button {
+      padding: 12px 24px;
+      font-size: 1rem;
+      margin: 10px 5px;
+      border-radius: 8px;
+      background-color: #6C63FF;
+      color: white;
+      border: none;
+    }
+    button:disabled {
+      background-color: #aaa;
+      cursor: not-allowed;
+    }
+    .gauge-bar {
+      background-color: #ddd;
+      height: 20px;
+      border-radius: 10px;
+      margin-top: 10px;
+      width: 100%;
+      overflow: hidden;
+    }
+    .gauge-fill {
+      background-color: #06D6A0;
+      height: 100%;
+      width: 0%;
+      transition: width 0.3s;
+    }
+  </style>
 </head>
 <body>
-  <h1>🔑 참가자 인증</h1>
-  <div id="loginArea">
-    <input type="text" id="employeeNo" placeholder="사번 입력" />
-    <button onclick="participantLogin()">로그인</button>
-  </div>
 
-  <div id="gameArea" style="display: none;">
-    <h2>💬 현재 라운드</h2>
-    <div id="scenarioDisplay">대기 중입니다...</div>
+  <h1 style="text-align: center;">🎮 리더십 게임 참가자 페이지</h1>
 
-    <div id="optionsArea" style="display: none;">
-      <button onclick="selectOption('A')" id="btnA">A</button>
-      <button onclick="selectOption('B')" id="btnB">B</button>
-      <button onclick="selectOption('C')" id="btnC">C</button>
-      <button onclick="selectOption('D')" id="btnD">D</button>
+  <!-- 로그인 -->
+  <section id="loginSection">
+    <h2>🔑 사번 로그인</h2>
+    <input type="text" id="employeeNoInput" placeholder="사번 입력" />
+    <button onclick="login()">로그인</button>
+  </section>
+
+  <!-- 게임 영역 -->
+  <section id="gameSection" class="hidden">
+    <h2>🧠 선택하기</h2>
+    <div id="lockNotice" style="color: red; font-weight: bold; display: none;">
+      교육담당자의 안내 후 이동이 가능합니다.
     </div>
 
-    <div id="selectedResult" style="margin-top: 20px;"></div>
+    <div id="optionArea">
+      <button onclick="submitChoice('A')">A</button>
+      <button onclick="submitChoice('B')">B</button>
+      <button onclick="submitChoice('C')">C</button>
+      <button onclick="submitChoice('D')">D</button>
+    </div>
 
-    <div id="empathyArea" style="display: none;">
+    <div style="margin-top: 20px;">
+      <button id="confirmBtn" onclick="confirmChoice()">확인</button>
+    </div>
+
+    <div id="resultDisplay" style="margin-top: 20px;"></div>
+
+    <!-- ❤️ 공감 영역 -->
+    <div id="empathyArea" class="hidden">
       <h3>❤️ 공감할 팀원 선택 (최대 2명)</h3>
       <form id="empathyForm"></form>
       <button onclick="submitEmpathy()">공감 제출</button>
     </div>
 
-    <div id="resultArea" style="margin-top: 20px;"></div>
-  </div>
+    <!-- ⚡ 에너지 게이지 -->
+    <div style="margin-top: 30px;">
+      <h3>⚡ 현재 에너지</h3>
+      <div class="gauge-bar">
+        <div id="gaugeFill" class="gauge-fill"></div>
+      </div>
+      <div id="gaugeValue" style="margin-top: 5px; text-align: right;"></div>
+    </div>
+  </section>
 
-  <script type="module" src="/js/participant.js"></script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBhI_N0bPlhaBaNXiyIHHWX5KzIznPD9fs",
+      authDomain: "leadershipg-v1.firebaseapp.com",
+      projectId: "leadershipg-v1",
+      storageBucket: "leadershipg-v1.firebasestorage.app",
+      messagingSenderId: "1069669847032",
+      appId: "1:1069669847032:web:db299884387f59c58b500d"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+  </script>
+
+  <script>
+    let currentUser = null;
+    let currentRound = "round1";
+    let selectedOption = null;
+
+    function login() {
+      const inputNo = document.getElementById("employeeNoInput").value.trim();
+      if (!inputNo) return alert("사번을 입력하세요.");
+
+      db.collection("users").get().then(snapshot => {
+        let found = false;
+        snapshot.forEach(doc => {
+          const user = doc.data();
+          if (user.employee_no === inputNo) {
+            currentUser = { ...user, id: doc.id };
+            found = true;
+          }
+        });
+
+        if (!found) return alert("해당 사번 없음");
+
+        document.getElementById("loginSection").classList.add("hidden");
+        document.getElementById("gameSection").classList.remove("hidden");
+
+        checkLockState();
+        loadEnergyGauge();
+      });
+    }
+
+    function checkLockState() {
+      db.collection("round_status").doc("control").onSnapshot(doc => {
+        const isLocked = doc.data()?.isLocked;
+        const confirmBtn = document.getElementById("confirmBtn");
+        const notice = document.getElementById("lockNotice");
+
+        confirmBtn.disabled = !!isLocked;
+        notice.style.display = isLocked ? "block" : "none";
+      });
+    }
+
+    function submitChoice(option) {
+      selectedOption = option;
+      document.getElementById("resultDisplay").innerHTML = `✔️ 선택한 항목: ${option}`;
+    }
+
+    function confirmChoice() {
+      if (!selectedOption) return alert("선택지를 먼저 고르세요.");
+
+      const choiceRef = db.collection("user_choices").doc(currentRound).collection("data").doc(currentUser.id);
+      choiceRef.set({
+        selected_option: selectedOption,
+        empathy_received: 0
+      }).then(() => {
+        db.collection("users").doc(currentUser.id).update({ last_choice: selectedOption });
+        alert("선택 저장 완료!");
+        renderEmpathyForm();
+      });
+    }
+
+    // 공감 렌더링
+    function renderEmpathyForm() {
+      const form = document.getElementById("empathyForm");
+      const area = document.getElementById("empathyArea");
+      form.innerHTML = "";
+
+      db.collection("users").where("team_id", "==", currentUser.team_id).get().then(snapshot => {
+        snapshot.forEach(doc => {
+          if (doc.id !== currentUser.id) {
+            const user = doc.data();
+            form.innerHTML += `
+              <label><input type="checkbox" name="empathy" value="${doc.id}"/> ${user.name}</label><br/>
+            `;
+          }
+        });
+        area.classList.remove("hidden");
+      });
+    }
+
+    // 공감 제출
+    function submitEmpathy() {
+      const selected = document.querySelectorAll('input[name="empathy"]:checked');
+      if (selected.length > 2) return alert("최대 2명까지 선택 가능합니다.");
+
+      selected.forEach(async checkbox => {
+        const uid = checkbox.value;
+        const ref = db.collection("user_choices").doc(currentRound).collection("data").doc(uid);
+        const snap = await ref.get();
+        const current = snap.exists ? snap.data().empathy_received || 0 : 0;
+
+        await ref.set({ empathy_received: current + 1 }, { merge: true });
+
+        const userRef = db.collection("users").doc(uid);
+        const userSnap = await userRef.get();
+        const energy = userSnap.data()?.energy || 5;
+        await userRef.update({ energy: energy + 1 });
+      });
+
+      alert("공감 제출 완료!");
+      document.getElementById("empathyArea").classList.add("hidden");
+      loadEnergyGauge();
+    }
+
+    // 에너지 게이지
+    function loadEnergyGauge() {
+      if (!currentUser?.id) return;
+      db.collection("users").doc(currentUser.id).onSnapshot(doc => {
+        const energy = doc.data()?.energy ?? 0;
+        const fill = document.getElementById("gaugeFill");
+        const val = document.getElementById("gaugeValue");
+
+        const percent = Math.min((energy / 10) * 100, 100);
+        fill.style.width = percent + "%";
+        val.innerText = `${energy} / 10`;
+      });
+    }
+  </script>
 </body>
 </html>
