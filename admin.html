@@ -1,0 +1,68 @@
+<!-- public/admin.html -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>관리자 대시보드</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <h1>🎮 관리자 대시보드</h1>
+
+  <!-- 🔐 로그인 상태 -->
+  <div id="adminStatus"></div>
+
+  <!-- 🎛️ 라운드 제어 영역 -->
+  <section>
+    <h2>🕹️ 라운드 제어</h2>
+    <select id="roundSelect">
+      <option value="round1">Round 1</option>
+      <option value="round2">Round 2</option>
+      <option value="round3">Round 3</option>
+      <option value="round4">Round 4</option>
+    </select>
+    <button onclick="toggleRound(true)">라운드 시작</button>
+    <button onclick="toggleRound(false)">라운드 종료</button>
+  </section>
+
+  <!-- ✍️ 상황 설명 및 선택지 입력 -->
+  <section>
+    <h2>📝 상황 설명 및 선택지 입력</h2>
+    <textarea id="scenarioText" rows="4" cols="50" placeholder="상황 설명 입력..."></textarea>
+    <div id="options">
+      <input placeholder="A 선택지" id="optionA" />
+      <input placeholder="B 선택지" id="optionB" />
+      <input placeholder="C 선택지" id="optionC" />
+      <input placeholder="D 선택지" id="optionD" />
+    </div>
+    <button onclick="saveOptions()">선택지 저장</button>
+  </section>
+
+  <!-- 👥 참가자 모니터링 테이블 -->
+  <section>
+    <h2>📊 참가자 현황</h2>
+    <table id="participantTable" border="1">
+      <thead>
+        <tr>
+          <th>이름</th>
+          <th>사번</th>
+          <th>팀</th>
+          <th>에너지</th>
+          <th>점수</th>
+          <th>선택</th>
+        </tr>
+      </thead>
+      <tbody id="participantBody"></tbody>
+    </table>
+  </section>
+
+  <!-- 📥 CSV 다운로드 -->
+  <section>
+    <h2>📁 데이터 내보내기</h2>
+    <button onclick="exportCSV()">CSV 다운로드</button>
+  </section>
+
+  <script type="module" src="/js/admin.js"></script>
+</body>
+</html>
