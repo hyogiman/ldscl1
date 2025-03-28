@@ -1,35 +1,142 @@
-/* /css/styles.css */
+/* === 공통 스타일 === */
+@import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
+
+:root {
+  --main-bg: #f9fafe;
+  --primary-color: #6C63FF;
+  --accent-color: #FFD166;
+  --soft-green: #06D6A0;
+  --danger-color: #EF476F;
+  --text-color: #333;
+  --radius: 12px;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --transition: 0.3s ease-in-out;
+}
+
 body {
-  font-family: 'Pretendard', sans-serif;
-  margin: 30px;
-  background: #f9f9f9;
-}
-section {
-  margin-top: 30px;
+  margin: 0;
+  padding: 0;
+  font-family: 'Jua', sans-serif;
+  background-color: var(--main-bg);
+  color: var(--text-color);
+  line-height: 1.6;
   padding: 20px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 0 10px #ccc;
 }
-input, textarea, button, select {
-  padding: 10px;
-  margin: 5px;
+
+h1, h2, h3 {
+  text-align: center;
+  color: var(--primary-color);
+}
+
+section {
+  background-color: #fff;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin: 20px auto;
+  padding: 20px;
+  max-width: 960px;
+  transition: var(--transition);
+}
+
+input, select, textarea, button {
+  font-family: 'Jua', sans-serif;
   font-size: 1rem;
+  padding: 10px 15px;
+  margin: 5px;
+  border: 1px solid #ccc;
+  border-radius: var(--radius);
+  transition: var(--transition);
 }
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--primary-color);
+  outline: none;
+  box-shadow: 0 0 5px var(--primary-color);
+}
+
+button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #5a55dd;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
+  margin-top: 15px;
 }
+
+th {
+  background-color: var(--accent-color);
+  color: #222;
+}
+
 th, td {
   padding: 10px;
-  border: 1px solid #aaa;
+  border: 1px solid #ddd;
+  text-align: center;
 }
-#optionsArea button {
-  margin: 10px;
-  padding: 15px 30px;
-  font-size: 1.2rem;
-  cursor: pointer;
+
+input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
 }
-#empathyForm {
-  margin-top: 10px;
+
+/* ✅ 반응형 처리 */
+@media (max-width: 768px) {
+  body {
+    padding: 10px;
+  }
+
+  section {
+    padding: 15px;
+  }
+
+  table, thead, tbody, th, td, tr {
+    display: block;
+  }
+
+  thead tr {
+    display: none;
+  }
+
+  td {
+    position: relative;
+    padding-left: 50%;
+    margin-bottom: 10px;
+    text-align: left;
+  }
+
+  td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    font-weight: bold;
+  }
+
+  input, select, button {
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+/* 💖 사용자 정의 컬러 강조 */
+button.danger {
+  background-color: var(--danger-color);
+}
+button.danger:hover {
+  background-color: #c7435c;
+}
+
+button.success {
+  background-color: var(--soft-green);
+}
+button.success:hover {
+  background-color: #05b98b;
 }
