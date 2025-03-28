@@ -1,89 +1,139 @@
 // /js/admin.js
-import { db, auth } from './firebaseConfig.js';
+import { db } from './firebaseConfig.js';
 import {
-  doc, setDoc, updateDoc, collection, getDocs, onSnapshot
+  collection, doc, addDoc, getDocs, updateDoc, deleteDoc, query, where
 } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
-import {
-  onAuthStateChanged, signOut
-} from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
 
-// ✅ 관리자 로그인 확인
-const adminStatus = document.getElementById('adminStatus');
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    adminStatus.innerHTML = `👤 로그인됨: ${user.email} <button onclick="logout()">로그아웃</button>`;
-    listenParticipants(); // 실시간 참가자 모니터링
-  } else {
-    alert("로그인이 필요합니다!");
-    window.location.href = '/index.html';
-  }
-});
+const teamTableBody = document.getElementById("teamTableBody");
+const participantTableBody = document.getElementById("participantTableBody");
+const teamSelect = document.getElementById("teamSelect");
 
-window.logout = async function () {
-  await signOut(auth);
-  location.reload();
+// 🔁 팀 목록 불러오기
+async function loadTeams() {
+  teamTableBody.innerHTML = "";
+  const snapshot = await getDocs(collection(db, "teams"));
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
+    const row = `
+      <tr>
+        <td><input value="${data.name}" onchange="updateTeam('${docSnap.id}', this.value)" /></td>
+        <td><button onclick="updateTeam('${docSnap.id}', this.previousElementSibling.value)">수정</button></td>
+        <td><button onclick="deleteTeam('${docSnap.id}')">삭제</button></td>
+      </tr>
+    `;
+    teamTableBody.innerHTML += row;
+  });
+
+  // 팀 선택 드롭다운도 갱신
+  await loadTeamSelect();
+}
+
+// ✅ 팀 추가
+window.addTeam = async function () {
+  const name = document.getElementById("teamNameInput").value.trim();
+  if (!name) return alert("팀 이름을 입력하세요");
+
+  await addDoc(collection(db, "teams"), {
+    name: name,
+    created_at: new Date()
+  });
+
+  document.getElementById("teamNameInput").value = "";
+  loadTeams();
 };
 
-// 🎮 라운드 시작/종료 제어
-window.toggleRound = async function (isOpen) {
-  const round = document.getElementById("roundSelect").value;
-  await updateDoc(doc(db, "rounds", round), { isOpen });
-  alert(`📢 ${round} ${isOpen ? '시작' : '종료'}되었습니다`);
+// ✅ 팀 수정
+window.updateTeam = async function (id, name) {
+  await updateDoc(doc(db, "teams", id), { name });
+  alert("팀 이름이 수정되었습니다.");
+  loadTeams();
 };
 
-// ✍️ 선택지 저장
-window.saveOptions = async function () {
-  const round = document.getElementById("roundSelect").value;
-  const scenario = document.getElementById("scenarioText").value;
-  const options = {
-    A: document.getElementById("optionA").value,
-    B: document.getElementById("optionB").value,
-    C: document.getElementById("optionC").value,
-    D: document.getElementById("optionD").value
-  };
-
-  await setDoc(doc(db, "rounds", round), {
-    scenario,
-    options,
-    isOpen: false // 기본은 비활성
-  }, { merge: true });
-
-  alert(`✅ ${round} 선택지가 저장되었습니다.`);
+// ✅ 팀 삭제
+window.deleteTeam = async function (id) {
+  await deleteDoc(doc(db, "teams", id));
+  alert("팀이 삭제되었습니다.");
+  loadTeams();
 };
 
-// 📊 참가자 정보 실시간 반영
-function listenParticipants() {
-  const tbody = document.getElementById("participantBody");
-  onSnapshot(collection(db, "users"), (snapshot) => {
-    tbody.innerHTML = '';
-    snapshot.forEach(docSnap => {
-      const data = docSnap.data();
-      const row = `
-        <tr>
-          <td>${data.name}</td>
-          <td>${data.employee_no}</td>
-          <td>${data.team || '-'}</td>
-          <td>${data.energy}</td>
-          <td>${data.leadership_score}</td>
-          <td>${data.last_choice || '-'}</td>
-        </tr>`;
-      tbody.innerHTML += row;
-    });
+// 📥 드롭다운에 팀 로드
+async function loadTeamSelect() {
+  teamSelect.innerHTML = '<option value="">팀 선택</option>';
+  const snapshot = await getDocs(collection(db, "teams"));
+  snapshot.forEach(docSnap => {
+    const option = document.createElement("option");
+    option.value = docSnap.id;
+    option.textContent = docSnap.data().name;
+    teamSelect.appendChild(option);
   });
 }
 
-// 📁 CSV 다운로드
-window.exportCSV = async function () {
-  const snapshot = await getDocs(collection(db, "users"));
-  let csv = '이름,사번,팀,에너지,점수\n';
-  snapshot.forEach(docSnap => {
-    const d = docSnap.data();
-    csv += `${d.name},${d.employee_no},${d.team || '-'},${d.energy},${d.leadership_score}\n`;
+// ✅ 참가자 추가
+window.addParticipant = async function () {
+  const teamId = teamSelect.value;
+  const employeeNo = document.getElementById("employeeNoInput").value.trim();
+  const name = document.getElementById("nameInput").value.trim();
+
+  if (!teamId || !employeeNo || !name) {
+    return alert("모든 정보를 입력해주세요.");
+  }
+
+  await addDoc(collection(db, "users"), {
+    team_id: teamId,
+    employee_no: employeeNo,
+    name: name,
+    energy: 5,
+    leadership_score: 0,
+    last_choice: null
   });
 
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = "participant_data.csv";
-  link.click();
+  document.getElementById("employeeNoInput").value = '';
+  document.getElementById("nameInput").value = '';
+  loadParticipants();
 };
+
+// ✅ 참가자 조회
+window.loadParticipants = async function () {
+  const teamId = teamSelect.value;
+  participantTableBody.innerHTML = "";
+
+  if (!teamId) return;
+
+  const q = query(collection(db, "users"), where("team_id", "==", teamId));
+  const snapshot = await getDocs(q);
+
+  snapshot.forEach(docSnap => {
+    const d = docSnap.data();
+    const row = `
+      <tr>
+        <td><input value="${d.name}" onchange="updateParticipant('${docSnap.id}', 'name', this.value)" /></td>
+        <td><input value="${d.employee_no}" onchange="updateParticipant('${docSnap.id}', 'employee_no', this.value)" /></td>
+        <td>${teamSelect.options[teamSelect.selectedIndex].text}</td>
+        <td>${d.energy}</td>
+        <td>${d.leadership_score}</td>
+        <td><button onclick="updateParticipant('${docSnap.id}')">저장</button></td>
+        <td><button onclick="deleteParticipant('${docSnap.id}')">삭제</button></td>
+      </tr>
+    `;
+    participantTableBody.innerHTML += row;
+  });
+};
+
+// ✅ 참가자 수정
+window.updateParticipant = async function (id, field = null, value = null) {
+  if (field && value !== null) {
+    await updateDoc(doc(db, "users", id), { [field]: value });
+  } else {
+    alert("자동 저장되었습니다.");
+  }
+};
+
+// ✅ 참가자 삭제
+window.deleteParticipant = async function (id) {
+  await deleteDoc(doc(db, "users", id));
+  alert("참가자가 삭제되었습니다.");
+  loadParticipants();
+};
+
+// 초기 로딩
+loadTeams();
