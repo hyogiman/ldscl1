@@ -11,6 +11,9 @@
     .tabs button.active { background: var(--primary-color); color: white; }
     .tab-section { display: none; }
     .tab-section.active { display: block; }
+    .locked { color: red; font-weight: bold; }
+    .unlocked { color: green; font-weight: bold; }
+    .csv-table { margin-top: 20px; }
     input[type="number"] { width: 80px; }
   </style>
 </head>
@@ -22,6 +25,7 @@
     <button onclick="showTab('teamTab', this)">👥 팀 관리</button>
     <button onclick="showTab('userTab', this)">👤 참가자 관리</button>
     <button onclick="showTab('optionTab', this)">🎯 선택지 관리</button>
+    <button onclick="showTab('resultTab', this)">📊 결과 보기</button>
   </div>
 
   <!-- 🔐 제어 탭 -->
@@ -29,38 +33,18 @@
     <h2>🔐 라운드 제어</h2>
     <table>
       <tr><th>단계</th><th>상태</th><th>제어</th></tr>
-      <tr>
-        <td>로그인</td>
-        <td id="login_lock_status">-</td>
-        <td>
-          <button onclick="setControl('login_lock', true)">🔒</button>
-          <button onclick="setControl('login_lock', false)">🔓</button>
-        </td>
-      </tr>
-      <tr>
-        <td>설명</td>
-        <td id="explain_lock_status">-</td>
-        <td>
-          <button onclick="setControl('explain_lock', true)">🔒</button>
-          <button onclick="setControl('explain_lock', false)">🔓</button>
-        </td>
-      </tr>
-      <tr>
-        <td>선택</td>
-        <td id="select_lock_status">-</td>
-        <td>
-          <button onclick="setControl('select_lock', true)">🔒</button>
-          <button onclick="setControl('select_lock', false)">🔓</button>
-        </td>
-      </tr>
-      <tr>
-        <td>결과</td>
-        <td id="result_lock_status">-</td>
-        <td>
-          <button onclick="setControl('result_lock', true)">🔒</button>
-          <button onclick="setControl('result_lock', false)">🔓</button>
-        </td>
-      </tr>
+      <tr><td>로그인</td><td id="login_lock_status">-</td>
+        <td><button onclick="setControl('login_lock', true)">🔒</button>
+            <button onclick="setControl('login_lock', false)">🔓</button></td></tr>
+      <tr><td>설명</td><td id="explain_lock_status">-</td>
+        <td><button onclick="setControl('explain_lock', true)">🔒</button>
+            <button onclick="setControl('explain_lock', false)">🔓</button></td></tr>
+      <tr><td>선택</td><td id="select_lock_status">-</td>
+        <td><button onclick="setControl('select_lock', true)">🔒</button>
+            <button onclick="setControl('select_lock', false)">🔓</button></td></tr>
+      <tr><td>결과</td><td id="result_lock_status">-</td>
+        <td><button onclick="setControl('result_lock', true)">🔒</button>
+            <button onclick="setControl('result_lock', false)">🔓</button></td></tr>
     </table>
   </section>
 
@@ -96,9 +80,16 @@
       <option value="round4">Round 4</option>
     </select>
     <table>
-      <thead><tr><th>선택지</th><th>리더십점수</th><th>에너지점수</th><th>저장</th></tr></thead>
+      <thead><tr><th>선택지</th><th>리더십 +</th><th>에너지 -</th><th>저장</th></tr></thead>
       <tbody id="optionTableBody"></tbody>
     </table>
+  </section>
+
+  <!-- 📊 결과 -->
+  <section id="resultTab" class="tab-section">
+    <h2>📊 팀별 결과 보기</h2>
+    <button onclick="loadResults()">불러오기</button>
+    <div id="resultTable" class="csv-table"></div>
   </section>
 
   <!-- Firebase -->
@@ -129,7 +120,8 @@
     controlRef.onSnapshot(doc => {
       const data = doc.data() || {};
       ["login_lock", "explain_lock", "select_lock", "result_lock"].forEach(k => {
-        document.getElementById(k + "_status").innerText = data[k] ? "🔒" : "🔓";
+        const el = document.getElementById(k + "_status");
+        el.innerHTML = data[k] ? '<span class="locked">🔒 잠금</span>' : '<span class="unlocked">🔓 해제</span>';
       });
     });
 
@@ -146,15 +138,14 @@
       tbody.innerHTML = "";
       select.innerHTML = "<option value=''>-- 선택 --</option>";
       const snap = await db.collection("teams").get();
-      snap.forEach(doc => {
-        const team = doc.data();
+      const teams = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      teams.sort((a, b) => b.name.localeCompare(a.name));
+      teams.forEach(team => {
         tbody.innerHTML += `
-          <tr>
-            <td><input id="t_${doc.id}" value="${team.name}" /></td>
-            <td><button onclick="updateTeam('${doc.id}')">수정</button></td>
-            <td><button onclick="deleteTeam('${doc.id}')">삭제</button></td>
-          </tr>`;
-        select.innerHTML += `<option value="${doc.id}">${team.name}</option>`;
+          <tr><td><input id="t_${team.id}" value="${team.name}" /></td>
+          <td><button onclick="updateTeam('${team.id}')">수정</button></td>
+          <td><button onclick="deleteTeam('${team.id}')">삭제</button></td></tr>`;
+        select.innerHTML += `<option value="${team.id}">${team.name}</option>`;
       });
     }
 
@@ -174,7 +165,7 @@
       if (!teamId || !empNo || !name) return;
       db.collection("users").add({
         team_id: teamId, employee_no: empNo, name,
-        energy: 5, leadership_score: 0
+        energy: 10, leadership_score: 0
       }).then(() => {
         document.getElementById("employeeNoInput").value = "";
         document.getElementById("nameInput").value = "";
@@ -229,6 +220,29 @@
       db.collection("rounds").doc(round).set({
         options: { [key]: { leadership: l, energy: e } }
       }, { merge: true }).then(() => alert(`${key} 저장됨`));
+    }
+
+    async function loadResults() {
+      const snap = await db.collection("users").get();
+      const result = {};
+      snap.forEach(doc => {
+        const u = doc.data();
+        const team = u.team_id || "미분류";
+        if (!result[team]) result[team] = { count: 0, totalScore: 0, totalEnergy: 0 };
+        result[team].count++;
+        result[team].totalScore += u.leadership_score || 0;
+        result[team].totalEnergy += u.energy || 0;
+      });
+
+      const box = document.getElementById("resultTable");
+      box.innerHTML = "<table><thead><tr><th>팀</th><th>인원</th><th>총 리더십</th><th>평균 에너지</th></tr></thead><tbody>";
+
+      for (const team in result) {
+        const t = result[team];
+        box.innerHTML += `<tr><td>${team}</td><td>${t.count}</td><td>${t.totalScore}</td><td>${(t.totalEnergy/t.count).toFixed(1)}</td></tr>`;
+      }
+
+      box.innerHTML += "</tbody></table>";
     }
 
     loadTeams();
