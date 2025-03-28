@@ -1,102 +1,60 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>👤 참가자 페이지</title>
-  <link rel="stylesheet" href="/css/styles.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>참가자 페이지</title>
+  <link rel="stylesheet" href="css/style.css" />
   <style>
-    body { font-family: 'Jua', sans-serif; padding: 20px; background: #f0fbff; }
-    .hidden { display: none; }
-    section {
-      background: white;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      max-width: 600px;
-      margin: auto;
-      margin-top: 20px;
-    }
-    button {
-      padding: 12px 24px;
-      font-size: 1rem;
-      margin: 10px 5px;
-      border-radius: 8px;
-      background-color: #6C63FF;
-      color: white;
-      border: none;
-    }
-    button:disabled {
-      background-color: #aaa;
-      cursor: not-allowed;
-    }
     .gauge-bar {
-      background-color: #ddd;
-      height: 20px;
-      border-radius: 10px;
-      margin-top: 10px;
       width: 100%;
+      height: 20px;
+      background: #eee;
+      border-radius: 12px;
       overflow: hidden;
+      margin-top: 8px;
     }
     .gauge-fill {
-      background-color: #06D6A0;
       height: 100%;
+      background: linear-gradient(90deg, #06D6A0, #1CD6CE);
       width: 0%;
-      transition: width 0.3s;
+      transition: width 0.3s ease-in-out;
     }
   </style>
 </head>
 <body>
+  <h1>🎮 리더십 에너지 관리 게임</h1>
 
-  <h1 style="text-align: center;">🎮 리더십 게임 참가자 페이지</h1>
-
-  <!-- 로그인 -->
-  <section id="loginSection">
+  <section>
     <h2>🔑 사번 로그인</h2>
-    <input type="text" id="employeeNoInput" placeholder="사번 입력" />
+    <input type="text" id="employeeNoInput" placeholder="사번을 입력하세요" />
     <button onclick="login()">로그인</button>
   </section>
 
-  <!-- 게임 영역 -->
-  <section id="gameSection" class="hidden">
-    <h2>🧠 선택하기</h2>
-    <div id="lockNotice" style="color: red; font-weight: bold; display: none;">
-      교육담당자의 안내 후 이동이 가능합니다.
+  <section id="gameSection" style="display:none;">
+    <h2>🧠 선택지 선택</h2>
+    <div id="lockMessage" style="color: red; display: none;">
+      ❌ 현재 확인 버튼이 잠금 상태입니다. 안내 후 진행해 주세요.
     </div>
-
-    <div id="optionArea">
-      <button onclick="submitChoice('A')">A</button>
-      <button onclick="submitChoice('B')">B</button>
-      <button onclick="submitChoice('C')">C</button>
-      <button onclick="submitChoice('D')">D</button>
+    <div>
+      <button onclick="selectOption('A')">A</button>
+      <button onclick="selectOption('B')">B</button>
+      <button onclick="selectOption('C')">C</button>
+      <button onclick="selectOption('D')">D</button>
     </div>
+    <p>선택한 항목: <strong id="selectedDisplay">없음</strong></p>
+    <button id="confirmBtn" onclick="confirmChoice()">✅ 확인</button>
 
-    <div style="margin-top: 20px;">
-      <button id="confirmBtn" onclick="confirmChoice()">확인</button>
-    </div>
-
-    <div id="resultDisplay" style="margin-top: 20px;"></div>
-
-    <!-- ❤️ 공감 영역 -->
-    <div id="empathyArea" class="hidden">
-      <h3>❤️ 공감할 팀원 선택 (최대 2명)</h3>
-      <form id="empathyForm"></form>
-      <button onclick="submitEmpathy()">공감 제출</button>
-    </div>
-
-    <!-- ⚡ 에너지 게이지 -->
     <div style="margin-top: 30px;">
-      <h3>⚡ 현재 에너지</h3>
-      <div class="gauge-bar">
-        <div id="gaugeFill" class="gauge-fill"></div>
-      </div>
-      <div id="gaugeValue" style="margin-top: 5px; text-align: right;"></div>
+      <h3>⚡ 에너지 상태</h3>
+      <div class="gauge-bar"><div id="gaugeFill" class="gauge-fill"></div></div>
+      <p style="text-align:right; font-weight:bold;"><span id="gaugeValue">0</span> / 10</p>
     </div>
   </section>
 
   <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
 
   <script>
     const firebaseConfig = {
@@ -113,30 +71,37 @@
 
   <script>
     let currentUser = null;
-    let currentRound = "round1";
     let selectedOption = null;
+    const currentRound = 'round1'; // 향후 변수화 가능
 
     function login() {
-      const inputNo = document.getElementById("employeeNoInput").value.trim();
-      if (!inputNo) return alert("사번을 입력하세요.");
+      const empNo = document.getElementById("employeeNoInput").value.trim();
+      if (!empNo) return alert("사번을 입력하세요.");
 
-      db.collection("users").get().then(snapshot => {
-        let found = false;
-        snapshot.forEach(doc => {
-          const user = doc.data();
-          if (user.employee_no === inputNo) {
-            currentUser = { ...user, id: doc.id };
-            found = true;
-          }
+      db.collection("users").where("employee_no", "==", empNo).get()
+        .then(snapshot => {
+          if (snapshot.empty) return alert("존재하지 않는 사번입니다.");
+          snapshot.forEach(doc => {
+            currentUser = { id: doc.id, ...doc.data() };
+            document.getElementById("gameSection").style.display = "block";
+            document.querySelector("section").style.display = "none";
+            loadEnergy();
+            checkLockState();
+          });
         });
+    }
 
-        if (!found) return alert("해당 사번 없음");
+    function selectOption(opt) {
+      selectedOption = opt;
+      document.getElementById("selectedDisplay").innerText = opt;
+    }
 
-        document.getElementById("loginSection").classList.add("hidden");
-        document.getElementById("gameSection").classList.remove("hidden");
+    function confirmChoice() {
+      if (!selectedOption) return alert("선택지를 먼저 골라주세요.");
 
-        checkLockState();
-        loadEnergyGauge();
+      const ref = db.collection("user_choices").doc(currentRound).collection("data").doc(currentUser.id);
+      ref.set({ selected_option: selectedOption, empathy_received: 0 }, { merge: true }).then(() => {
+        alert("선택 완료!");
       });
     }
 
@@ -144,86 +109,19 @@
       db.collection("round_status").doc("control").onSnapshot(doc => {
         const isLocked = doc.data()?.isLocked;
         const confirmBtn = document.getElementById("confirmBtn");
-        const notice = document.getElementById("lockNotice");
+        const lockMsg = document.getElementById("lockMessage");
 
-        confirmBtn.disabled = !!isLocked;
-        notice.style.display = isLocked ? "block" : "none";
+        confirmBtn.disabled = isLocked;
+        lockMsg.style.display = isLocked ? "block" : "none";
       });
     }
 
-    function submitChoice(option) {
-      selectedOption = option;
-      document.getElementById("resultDisplay").innerHTML = `✔️ 선택한 항목: ${option}`;
-    }
-
-    function confirmChoice() {
-      if (!selectedOption) return alert("선택지를 먼저 고르세요.");
-
-      const choiceRef = db.collection("user_choices").doc(currentRound).collection("data").doc(currentUser.id);
-      choiceRef.set({
-        selected_option: selectedOption,
-        empathy_received: 0
-      }).then(() => {
-        db.collection("users").doc(currentUser.id).update({ last_choice: selectedOption });
-        alert("선택 저장 완료!");
-        renderEmpathyForm();
-      });
-    }
-
-    // 공감 렌더링
-    function renderEmpathyForm() {
-      const form = document.getElementById("empathyForm");
-      const area = document.getElementById("empathyArea");
-      form.innerHTML = "";
-
-      db.collection("users").where("team_id", "==", currentUser.team_id).get().then(snapshot => {
-        snapshot.forEach(doc => {
-          if (doc.id !== currentUser.id) {
-            const user = doc.data();
-            form.innerHTML += `
-              <label><input type="checkbox" name="empathy" value="${doc.id}"/> ${user.name}</label><br/>
-            `;
-          }
-        });
-        area.classList.remove("hidden");
-      });
-    }
-
-    // 공감 제출
-    function submitEmpathy() {
-      const selected = document.querySelectorAll('input[name="empathy"]:checked');
-      if (selected.length > 2) return alert("최대 2명까지 선택 가능합니다.");
-
-      selected.forEach(async checkbox => {
-        const uid = checkbox.value;
-        const ref = db.collection("user_choices").doc(currentRound).collection("data").doc(uid);
-        const snap = await ref.get();
-        const current = snap.exists ? snap.data().empathy_received || 0 : 0;
-
-        await ref.set({ empathy_received: current + 1 }, { merge: true });
-
-        const userRef = db.collection("users").doc(uid);
-        const userSnap = await userRef.get();
-        const energy = userSnap.data()?.energy || 5;
-        await userRef.update({ energy: energy + 1 });
-      });
-
-      alert("공감 제출 완료!");
-      document.getElementById("empathyArea").classList.add("hidden");
-      loadEnergyGauge();
-    }
-
-    // 에너지 게이지
-    function loadEnergyGauge() {
-      if (!currentUser?.id) return;
+    function loadEnergy() {
       db.collection("users").doc(currentUser.id).onSnapshot(doc => {
         const energy = doc.data()?.energy ?? 0;
-        const fill = document.getElementById("gaugeFill");
-        const val = document.getElementById("gaugeValue");
-
         const percent = Math.min((energy / 10) * 100, 100);
-        fill.style.width = percent + "%";
-        val.innerText = `${energy} / 10`;
+        document.getElementById("gaugeFill").style.width = percent + "%";
+        document.getElementById("gaugeValue").innerText = energy;
       });
     }
   </script>
