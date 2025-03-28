@@ -9,52 +9,80 @@
 <body>
   <h1>🧠 리더십 게임 관리자</h1>
 
-  <div class="menu">
-    <button class="active" onclick="showTab('teamTab', this)">👥 팀/참가자 관리</button>
-    <button onclick="showTab('lockTab', this)">🔐 라운드 제어</button>
-  </div>
+  <!-- 🔐 제어 패널 -->
+  <section>
+    <h2>🎮 게임 제어</h2>
+    <table>
+      <thead>
+        <tr><th>단계</th><th>상태</th><th>제어</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>로그인 제어</td>
+          <td id="login_lock_status">로딩중</td>
+          <td>
+            <button onclick="setControl('login_lock', true)">🔒</button>
+            <button onclick="setControl('login_lock', false)">🔓</button>
+          </td>
+        </tr>
+        <tr>
+          <td>설명 제어</td>
+          <td id="explain_lock_status">로딩중</td>
+          <td>
+            <button onclick="setControl('explain_lock', true)">🔒</button>
+            <button onclick="setControl('explain_lock', false)">🔓</button>
+          </td>
+        </tr>
+        <tr>
+          <td>선택 제어</td>
+          <td id="select_lock_status">로딩중</td>
+          <td>
+            <button onclick="setControl('select_lock', true)">🔒</button>
+            <button onclick="setControl('select_lock', false)">🔓</button>
+          </td>
+        </tr>
+        <tr>
+          <td>라운드 종료 제어</td>
+          <td id="result_lock_status">로딩중</td>
+          <td>
+            <button onclick="setControl('result_lock', true)">🔒</button>
+            <button onclick="setControl('result_lock', false)">🔓</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
 
-  <!-- 🧩 팀 및 참가자 관리 탭 -->
-  <div id="teamTab" class="tab active">
-    <section>
-      <h2>👥 팀 등록</h2>
-      <input type="text" id="teamNameInput" placeholder="팀 이름" />
-      <button onclick="addTeam()">팀 추가</button>
-      <table>
-        <thead><tr><th>팀명</th><th>수정</th><th>삭제</th></tr></thead>
-        <tbody id="teamTableBody"></tbody>
-      </table>
-    </section>
+  <!-- 👥 팀 관리 -->
+  <section>
+    <h2>👥 팀 관리</h2>
+    <input type="text" id="teamNameInput" placeholder="팀 이름" />
+    <button onclick="addTeam()">팀 추가</button>
+    <table>
+      <thead><tr><th>팀명</th><th>수정</th><th>삭제</th></tr></thead>
+      <tbody id="teamTableBody"></tbody>
+    </table>
+  </section>
 
-    <section>
-      <h2>👤 참가자 등록</h2>
-      <select id="teamSelect"></select><br />
-      <input type="text" id="employeeNoInput" placeholder="사번" />
-      <input type="text" id="nameInput" placeholder="이름" />
-      <button onclick="addParticipant()">참가자 추가</button>
-      <table>
-        <thead><tr><th>이름</th><th>사번</th><th>에너지</th><th>점수</th><th>삭제</th></tr></thead>
-        <tbody id="participantTableBody"></tbody>
-      </table>
-    </section>
-  </div>
+  <!-- 👤 참가자 관리 -->
+  <section>
+    <h2>👤 참가자 관리</h2>
+    <select id="teamSelect"></select><br />
+    <input type="text" id="employeeNoInput" placeholder="사번" />
+    <input type="text" id="nameInput" placeholder="이름" />
+    <button onclick="addParticipant()">참가자 추가</button>
+    <table>
+      <thead><tr><th>이름</th><th>사번</th><th>에너지</th><th>점수</th><th>삭제</th></tr></thead>
+      <tbody id="participantTableBody"></tbody>
+    </table>
+  </section>
 
-  <!-- 🔐 라운드 제어 탭 -->
-  <div id="lockTab" class="tab" style="display:none;">
-    <section>
-      <h2>🔐 참가자 확인 버튼 제어</h2>
-      <p>현재 상태: <strong id="lockStatus">로딩 중...</strong></p>
-      <button onclick="setLockState(true)">🔒 잠금</button>
-      <button onclick="setLockState(false)">🔓 해제</button>
-    </section>
-  </div>
-
-  <!-- ✅ Firebase SDK (Compat) -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
 
   <script>
-    const firebaseConfig = {
+    const config = {
       apiKey: "AIzaSyBhI_N0bPlhaBaNXiyIHHWX5KzIznPD9fs",
       authDomain: "leadershipg-v1.firebaseapp.com",
       projectId: "leadershipg-v1",
@@ -62,50 +90,48 @@
       messagingSenderId: "1069669847032",
       appId: "1:1069669847032:web:db299884387f59c58b500d"
     };
-    firebase.initializeApp(firebaseConfig);
+    firebase.initializeApp(config);
     const db = firebase.firestore();
-  </script>
+    const controlRef = db.collection("round_status").doc("control");
 
-  <script>
-    // 🧭 탭 전환
-    function showTab(tabId, btn) {
-      document.querySelectorAll('.tab').forEach(tab => tab.style.display = "none");
-      document.getElementById(tabId).style.display = "block";
-      document.querySelectorAll('.menu button').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+    // 🔐 제어
+    function setControl(key, value) {
+      const update = {}; update[key] = value;
+      controlRef.set(update, { merge: true });
     }
 
-    // ✅ 팀 등록
+    function watchControls() {
+      controlRef.onSnapshot(doc => {
+        const data = doc.data() || {};
+        ["login_lock", "explain_lock", "select_lock", "result_lock"].forEach(key => {
+          const el = document.getElementById(`${key}_status`);
+          el.innerText = data[key] ? "🔒 잠금" : "🔓 해제됨";
+        });
+      });
+    }
+
+    // 👥 팀 관리
     function addTeam() {
       const name = document.getElementById("teamNameInput").value.trim();
-      if (!name) return alert("팀 이름을 입력하세요.");
+      if (!name) return alert("팀명을 입력하세요");
       db.collection("teams").add({ name }).then(() => {
         document.getElementById("teamNameInput").value = "";
         loadTeams();
       });
     }
 
-    // ✅ 팀 목록 불러오기 + 정렬 + 렌더링
     async function loadTeams() {
       const tbody = document.getElementById("teamTableBody");
       const select = document.getElementById("teamSelect");
-      tbody.innerHTML = "";
-      select.innerHTML = "<option value=''>-- 팀 선택 --</option>";
+      tbody.innerHTML = ""; select.innerHTML = "<option value=''>-- 팀 선택 --</option>";
 
       const snap = await db.collection("teams").get();
       const teamList = [];
-
-      snap.forEach(doc => {
-        teamList.push({ id: doc.id, ...doc.data() });
-      });
-
-      // 🔡 이름 기준 정렬
+      snap.forEach(doc => teamList.push({ id: doc.id, ...doc.data() }));
       teamList.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
 
       teamList.forEach(team => {
-        const id = team.id;
-        const name = team.name;
-
+        const id = team.id, name = team.name;
         tbody.innerHTML += `
           <tr>
             <td><input id="teamNameInput_${id}" value="${name}" /></td>
@@ -113,42 +139,37 @@
             <td><button onclick="deleteTeam('${id}')">삭제</button></td>
           </tr>
         `;
-
         select.innerHTML += `<option value="${id}">${name}</option>`;
       });
     }
 
-    // ✅ 팀 수정
     function updateTeam(id) {
       const input = document.getElementById("teamNameInput_" + id);
-      const newName = input.value.trim();
-      if (!newName) return alert("팀 이름을 입력하세요.");
-
-      db.collection("teams").doc(id).update({ name: newName })
-        .then(() => {
-          alert("✅ 팀 이름이 수정되었습니다.");
-          loadTeams();
-        });
+      const name = input.value.trim();
+      if (!name) return alert("팀명을 입력하세요");
+      db.collection("teams").doc(id).update({ name }).then(() => {
+        alert("✅ 수정 완료");
+        loadTeams();
+      });
     }
 
-    // ✅ 팀 삭제
     function deleteTeam(id) {
-      if (!confirm("이 팀을 삭제하시겠습니까?")) return;
+      if (!confirm("이 팀을 삭제할까요?")) return;
       db.collection("teams").doc(id).delete().then(loadTeams);
     }
 
-    // ✅ 참가자 등록
+    // 👤 참가자 관리
     function addParticipant() {
       const teamId = document.getElementById("teamSelect").value;
       const empNo = document.getElementById("employeeNoInput").value.trim();
       const name = document.getElementById("nameInput").value.trim();
-      if (!teamId || !empNo || !name) return alert("모든 항목을 입력하세요.");
+      if (!teamId || !empNo || !name) return alert("모든 정보를 입력하세요");
 
       db.collection("users").add({
         team_id: teamId,
         employee_no: empNo,
         name: name,
-        energy: 10,
+        energy: 5,
         leadership_score: 0
       }).then(() => {
         document.getElementById("employeeNoInput").value = "";
@@ -157,13 +178,11 @@
       });
     }
 
-    // ✅ 참가자 목록 불러오기
     function loadParticipants(teamId) {
       const tbody = document.getElementById("participantTableBody");
       tbody.innerHTML = "";
-
-      db.collection("users").where("team_id", "==", teamId).get().then(snapshot => {
-        snapshot.forEach(doc => {
+      db.collection("users").where("team_id", "==", teamId).get().then(snap => {
+        snap.forEach(doc => {
           const u = doc.data();
           tbody.innerHTML += `
             <tr>
@@ -178,33 +197,19 @@
       });
     }
 
-    // ✅ 참가자 삭제
     function deleteParticipant(id, teamId) {
-      if (!confirm("이 참가자를 삭제하시겠습니까?")) return;
+      if (!confirm("참가자를 삭제할까요?")) return;
       db.collection("users").doc(id).delete().then(() => loadParticipants(teamId));
     }
 
-    // ✅ 참가자 팀 선택 시 불러오기
     document.getElementById("teamSelect").addEventListener("change", e => {
       const teamId = e.target.value;
       if (teamId) loadParticipants(teamId);
     });
 
-    // ✅ 확인 버튼 제어
-    function setLockState(state) {
-      db.collection("round_status").doc("control").set({ isLocked: state }).then(getLockState);
-    }
-
-    function getLockState() {
-      db.collection("round_status").doc("control").get().then(doc => {
-        const isLocked = doc.data()?.isLocked;
-        document.getElementById("lockStatus").textContent = isLocked ? "🔒 잠금 중" : "🔓 해제됨";
-      });
-    }
-
-    // ✅ 초기 실행
+    // 초기 실행
     loadTeams();
-    getLockState();
+    watchControls();
   </script>
 </body>
 </html>
