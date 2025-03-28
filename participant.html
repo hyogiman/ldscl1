@@ -1,0 +1,41 @@
+<!-- /public/participant.html -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>참가자 페이지</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <h1>🔑 참가자 인증</h1>
+  <div id="loginArea">
+    <input type="text" id="employeeNo" placeholder="사번 입력" />
+    <button onclick="participantLogin()">로그인</button>
+  </div>
+
+  <div id="gameArea" style="display: none;">
+    <h2>💬 현재 라운드</h2>
+    <div id="scenarioDisplay">대기 중입니다...</div>
+
+    <div id="optionsArea" style="display: none;">
+      <button onclick="selectOption('A')" id="btnA">A</button>
+      <button onclick="selectOption('B')" id="btnB">B</button>
+      <button onclick="selectOption('C')" id="btnC">C</button>
+      <button onclick="selectOption('D')" id="btnD">D</button>
+    </div>
+
+    <div id="selectedResult" style="margin-top: 20px;"></div>
+
+    <div id="empathyArea" style="display: none;">
+      <h3>❤️ 공감할 팀원 선택 (최대 2명)</h3>
+      <form id="empathyForm"></form>
+      <button onclick="submitEmpathy()">공감 제출</button>
+    </div>
+
+    <div id="resultArea" style="margin-top: 20px;"></div>
+  </div>
+
+  <script type="module" src="/js/participant.js"></script>
+</body>
+</html>
