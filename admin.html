@@ -1,4 +1,4 @@
-<!-- public/admin.html -->
+<!-- /public/admin.html -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -6,61 +6,47 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>관리자 대시보드</title>
   <link rel="stylesheet" href="/css/styles.css" />
+  <style>
+    section { margin-top: 30px; padding: 20px; background: #fff; box-shadow: 0 0 10px #ccc; border-radius: 8px; }
+    table { width: 100%; margin-top: 10px; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    input, select, button { margin: 5px; padding: 8px; font-size: 1rem; }
+  </style>
 </head>
 <body>
-  <h1>🎮 관리자 대시보드</h1>
+  <h1>🧠 관리자 대시보드</h1>
 
-  <!-- 🔐 로그인 상태 -->
-  <div id="adminStatus"></div>
-
-  <!-- 🎛️ 라운드 제어 영역 -->
+  <!-- 👥 팀 관리 -->
   <section>
-    <h2>🕹️ 라운드 제어</h2>
-    <select id="roundSelect">
-      <option value="round1">Round 1</option>
-      <option value="round2">Round 2</option>
-      <option value="round3">Round 3</option>
-      <option value="round4">Round 4</option>
-    </select>
-    <button onclick="toggleRound(true)">라운드 시작</button>
-    <button onclick="toggleRound(false)">라운드 종료</button>
-  </section>
-
-  <!-- ✍️ 상황 설명 및 선택지 입력 -->
-  <section>
-    <h2>📝 상황 설명 및 선택지 입력</h2>
-    <textarea id="scenarioText" rows="4" cols="50" placeholder="상황 설명 입력..."></textarea>
-    <div id="options">
-      <input placeholder="A 선택지" id="optionA" />
-      <input placeholder="B 선택지" id="optionB" />
-      <input placeholder="C 선택지" id="optionC" />
-      <input placeholder="D 선택지" id="optionD" />
-    </div>
-    <button onclick="saveOptions()">선택지 저장</button>
-  </section>
-
-  <!-- 👥 참가자 모니터링 테이블 -->
-  <section>
-    <h2>📊 참가자 현황</h2>
-    <table id="participantTable" border="1">
+    <h2>👥 팀 관리</h2>
+    <input type="text" id="teamNameInput" placeholder="팀 이름 입력" />
+    <button onclick="addTeam()">팀 추가</button>
+    <table>
       <thead>
-        <tr>
-          <th>이름</th>
-          <th>사번</th>
-          <th>팀</th>
-          <th>에너지</th>
-          <th>점수</th>
-          <th>선택</th>
-        </tr>
+        <tr><th>팀 이름</th><th>수정</th><th>삭제</th></tr>
       </thead>
-      <tbody id="participantBody"></tbody>
+      <tbody id="teamTableBody"></tbody>
     </table>
   </section>
 
-  <!-- 📥 CSV 다운로드 -->
+  <!-- 👤 참가자 관리 -->
   <section>
-    <h2>📁 데이터 내보내기</h2>
-    <button onclick="exportCSV()">CSV 다운로드</button>
+    <h2>👤 참가자 관리</h2>
+    <label>팀 선택: </label>
+    <select id="teamSelect" onchange="loadParticipants()"></select>
+    <div style="margin-top: 10px;">
+      <input type="text" id="employeeNoInput" placeholder="사번 입력" />
+      <input type="text" id="nameInput" placeholder="이름 입력" />
+      <button onclick="addParticipant()">참가자 추가</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>이름</th><th>사번</th><th>팀</th><th>에너지</th><th>점수</th><th>수정</th><th>삭제</th>
+        </tr>
+      </thead>
+      <tbody id="participantTableBody"></tbody>
+    </table>
   </section>
 
   <script type="module" src="/js/admin.js"></script>
