@@ -88,10 +88,12 @@
     <button onclick="setLockState(false)">🔓 확인 버튼 해제</button>
   </section>
 
-  <!-- Firebase SDK & Script -->
+  <!-- ✅ Firebase SDK & Script -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+
   <script>
+    // ✅ Firebase 초기화
     const firebaseConfig = {
       apiKey: "AIzaSyBhI_N0bPlhaBaNXiyIHHWX5KzIznPD9fs",
       authDomain: "leadershipg-v1.firebaseapp.com",
@@ -102,135 +104,134 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-  </script>
 
-  <script>
-    // 🔁 팀 관리
-    function loadTeams() {
-      const tbody = document.getElementById("teamTableBody");
-      const select = document.getElementById("teamSelect");
-      tbody.innerHTML = "";
-      select.innerHTML = '<option value="">팀 선택</option>';
-      db.collection("teams").get().then(snapshot => {
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          tbody.innerHTML += `
-            <tr>
-              <td><input value="${data.name}" onchange="updateTeam('${doc.id}', this.value)" /></td>
-              <td><button onclick="updateTeam('${doc.id}', this.previousElementSibling.value)">수정</button></td>
-              <td><button onclick="deleteTeam('${doc.id}')">삭제</button></td>
-            </tr>`;
-          const option = document.createElement("option");
-          option.value = doc.id;
-          option.textContent = data.name;
-          select.appendChild(option);
+    // ✅ 모든 함수는 초기화 이후 정의
+    window.onload = function () {
+      // ▶ 팀 관리
+      window.addTeam = function () {
+        const name = document.getElementById("teamNameInput").value.trim();
+        if (!name) return alert("팀 이름을 입력하세요");
+
+        db.collection("teams").add({ name, created_at: new Date() })
+          .then(() => {
+            document.getElementById("teamNameInput").value = "";
+            loadTeams();
+          });
+      };
+
+      window.updateTeam = function (id, name) {
+        db.collection("teams").doc(id).update({ name })
+          .then(() => {
+            alert("팀 수정 완료");
+            loadTeams();
+          });
+      };
+
+      window.deleteTeam = function (id) {
+        db.collection("teams").doc(id).delete()
+          .then(() => {
+            alert("팀 삭제 완료");
+            loadTeams();
+          });
+      };
+
+      function loadTeams() {
+        const tbody = document.getElementById("teamTableBody");
+        const select = document.getElementById("teamSelect");
+        tbody.innerHTML = "";
+        select.innerHTML = '<option value="">팀 선택</option>';
+        db.collection("teams").get().then(snapshot => {
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            tbody.innerHTML += `
+              <tr>
+                <td><input value="${data.name}" onchange="updateTeam('${doc.id}', this.value)" /></td>
+                <td><button onclick="updateTeam('${doc.id}', this.previousElementSibling.value)">수정</button></td>
+                <td><button onclick="deleteTeam('${doc.id}')">삭제</button></td>
+              </tr>`;
+            const option = document.createElement("option");
+            option.value = doc.id;
+            option.textContent = data.name;
+            select.appendChild(option);
+          });
         });
-      });
-    }
+      }
 
-    function addTeam() {
-      const name = document.getElementById("teamNameInput").value.trim();
-      if (!name) return alert("팀 이름을 입력하세요");
-      db.collection("teams").add({ name, created_at: new Date() })
-        .then(() => {
-          document.getElementById("teamNameInput").value = "";
-          loadTeams();
-        });
-    }
+      // ▶ 참가자 관리
+      window.addParticipant = function () {
+        const teamId = document.getElementById("teamSelect").value;
+        const empNo = document.getElementById("employeeNoInput").value.trim();
+        const name = document.getElementById("nameInput").value.trim();
+        if (!teamId || !empNo || !name) return alert("모든 값을 입력해주세요.");
 
-    function updateTeam(id, newName) {
-      db.collection("teams").doc(id).update({ name: newName })
-        .then(() => alert("팀 이름 수정 완료"));
-    }
-
-    function deleteTeam(id) {
-      db.collection("teams").doc(id).delete()
-        .then(() => {
-          alert("팀 삭제 완료");
-          loadTeams();
-        });
-    }
-
-    // 👤 참가자 관리
-    function addParticipant() {
-      const teamId = document.getElementById("teamSelect").value;
-      const empNo = document.getElementById("employeeNoInput").value.trim();
-      const name = document.getElementById("nameInput").value.trim();
-      if (!teamId || !empNo || !name) return alert("모든 값을 입력해주세요.");
-
-      db.collection("users").add({
-        team_id: teamId,
-        employee_no: empNo,
-        name: name,
-        energy: 5,
-        leadership_score: 0,
-        last_choice: null
-      }).then(() => {
-        document.getElementById("employeeNoInput").value = '';
-        document.getElementById("nameInput").value = '';
-        loadParticipants();
-      });
-    }
-
-    function loadParticipants() {
-      const teamId = document.getElementById("teamSelect").value;
-      const tbody = document.getElementById("participantTableBody");
-      tbody.innerHTML = "";
-      if (!teamId) return;
-      db.collection("users").where("team_id", "==", teamId).get().then(snapshot => {
-        snapshot.forEach(doc => {
-          const d = doc.data();
-          tbody.innerHTML += `
-            <tr>
-              <td><input value="${d.name}" onchange="updateParticipant('${doc.id}', 'name', this.value)" /></td>
-              <td><input value="${d.employee_no}" onchange="updateParticipant('${doc.id}', 'employee_no', this.value)" /></td>
-              <td>${teamId}</td>
-              <td>${d.energy}</td>
-              <td>${d.leadership_score}</td>
-              <td><button onclick="alert('자동 저장됨')">저장</button></td>
-              <td><button onclick="deleteParticipant('${doc.id}')">삭제</button></td>
-            </tr>`;
-        });
-      });
-    }
-
-    function updateParticipant(id, field, value) {
-      const update = {};
-      update[field] = value;
-      db.collection("users").doc(id).update(update);
-    }
-
-    function deleteParticipant(id) {
-      db.collection("users").doc(id).delete()
-        .then(() => {
-          alert("참가자 삭제 완료");
+        db.collection("users").add({
+          team_id: teamId,
+          employee_no: empNo,
+          name: name,
+          energy: 5,
+          leadership_score: 0,
+          last_choice: null
+        }).then(() => {
+          document.getElementById("employeeNoInput").value = '';
+          document.getElementById("nameInput").value = '';
           loadParticipants();
         });
-    }
+      };
 
-    // 🔐 라운드 제어
-    const lockRef = db.collection("round_status").doc("control");
+      window.loadParticipants = function () {
+        const teamId = document.getElementById("teamSelect").value;
+        const tbody = document.getElementById("participantTableBody");
+        tbody.innerHTML = "";
+        if (!teamId) return;
+        db.collection("users").where("team_id", "==", teamId).get().then(snapshot => {
+          snapshot.forEach(doc => {
+            const d = doc.data();
+            tbody.innerHTML += `
+              <tr>
+                <td><input value="${d.name}" onchange="updateParticipant('${doc.id}', 'name', this.value)" /></td>
+                <td><input value="${d.employee_no}" onchange="updateParticipant('${doc.id}', 'employee_no', this.value)" /></td>
+                <td>${teamId}</td>
+                <td>${d.energy}</td>
+                <td>${d.leadership_score}</td>
+                <td><button onclick="alert('자동 저장됨')">저장</button></td>
+                <td><button onclick="deleteParticipant('${doc.id}')">삭제</button></td>
+              </tr>`;
+          });
+        });
+      };
 
-    function getLockState() {
-      lockRef.get().then(doc => {
-        if (doc.exists) {
-          const isLocked = doc.data().isLocked;
+      window.updateParticipant = function (id, field, value) {
+        const update = {};
+        update[field] = value;
+        db.collection("users").doc(id).update(update);
+      };
+
+      window.deleteParticipant = function (id) {
+        db.collection("users").doc(id).delete()
+          .then(() => {
+            alert("참가자 삭제 완료");
+            loadParticipants();
+          });
+      };
+
+      // ▶ 라운드 제어
+      const lockRef = db.collection("round_status").doc("control");
+
+      function getLockState() {
+        lockRef.get().then(doc => {
+          const isLocked = doc.data()?.isLocked;
           document.getElementById("lockStatus").innerText = isLocked ? "🔒 잠금 중" : "🔓 해제됨";
-        } else {
-          document.getElementById("lockStatus").innerText = "🚫 상태 없음";
-        }
-      });
-    }
+        });
+      }
 
-    function setLockState(state) {
-      lockRef.set({ isLocked: state }).then(() => {
-        getLockState();
-        alert(`참가자 확인 버튼이 ${state ? "잠금" : "해제"}되었습니다.`);
-      });
-    }
+      window.setLockState = function (state) {
+        lockRef.set({ isLocked: state }).then(() => {
+          getLockState();
+          alert(`확인 버튼이 ${state ? "잠금" : "해제"}되었습니다.`);
+        });
+      };
 
-    // 초기 로딩
-    window.onload = function () {
+      // ▶ 최초 실행
       loadTeams();
       getLockState();
     };
