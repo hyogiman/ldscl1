@@ -1,45 +1,44 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>리더십 참가자</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>리더십 게임 참가자</title>
+  <link rel="stylesheet" href="css/style.css" />
   <style>
-    .gauge-bar {
-      width: 100%; height: 20px;
-      background: #eee;
-      border-radius: 10px;
-      margin-top: 10px;
-    }
-    .gauge-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #06D6A0, #1CD6CE);
-      width: 0%;
-      transition: width 0.3s ease-in-out;
-    }
+    .gauge-bar { width: 100%; height: 16px; background: #eee; border-radius: 10px; margin-top: 5px; }
+    .gauge-fill { height: 100%; background: linear-gradient(90deg, #06D6A0, #1CD6CE); width: 0%; transition: width 0.3s; }
+    .user-info { background: #f0f0ff; padding: 10px; border-radius: 8px; margin-bottom: 15px; text-align: center; }
+    .stage { display: none; }
+    .selected-letter { font-size: 80px; text-align: center; margin: 30px 0; color: #6C63FF; font-weight: bold; }
   </style>
 </head>
 <body>
-  <h1>🎮 리더십 게임</h1>
+  <h1>🎮 리더십 에너지 관리 게임</h1>
+
+  <div class="user-info" id="userInfo" style="display: none;">
+    <p><strong id="userName">이름</strong> / <span id="userEmpNo">사번</span></p>
+    <div class="gauge-bar"><div class="gauge-fill" id="gaugeFill"></div></div>
+    <p style="margin: 5px 0;"><strong><span id="gaugeVal">0</span> / 10</strong></p>
+  </div>
 
   <!-- STEP 1: 로그인 -->
-  <section id="step1">
+  <section id="step1" class="stage" style="display: block;">
     <h2>1️⃣ 사번 로그인</h2>
-    <input id="employeeNoInput" placeholder="사번 입력" />
+    <input type="text" id="employeeNoInput" placeholder="사번 입력" />
     <button onclick="login()">로그인</button>
   </section>
 
-  <!-- STEP 2: 설명 -->
-  <section id="step2" style="display:none;">
+  <!-- STEP 2: 상황 설명 -->
+  <section id="step2" class="stage">
     <h2>2️⃣ 상황 설명</h2>
-    <p>교육자가 화면으로 설명합니다.</p>
-    <button onclick="goToStep(3)">확인</button>
+    <p>교육자가 화면으로 상황을 설명합니다.</p>
+    <button onclick="goToStep(3, 'explain_lock')">확인</button>
   </section>
 
   <!-- STEP 3: 선택 + 공감 -->
-  <section id="step3" style="display:none;">
-    <h2>3️⃣ 선택하세요</h2>
+  <section id="step3" class="stage">
+    <h2>3️⃣ 선택하기</h2>
     <div>
       <button onclick="selectOption('A')">A</button>
       <button onclick="selectOption('B')">B</button>
@@ -47,69 +46,73 @@
       <button onclick="selectOption('D')">D</button>
     </div>
     <p>선택: <strong id="selectedDisplay">없음</strong></p>
-    <button onclick="submitChoice()">확인</button>
+    <button onclick="submitChoice()">선택 확인</button>
 
-    <div id="afterSelect" style="display:none;">
-      <h3>공감 대상자 선택 (최대 2명)</h3>
-      <div id="empathyList">로딩중...</div>
-      <button onclick="goToStep(4)">확인</button>
+    <!-- 선택지 확인 후 표시 -->
+    <div id="confirmView" style="display:none;">
+      <div class="selected-letter" id="bigLetter">A</div>
+      <h3>공감하는 참가자 (최대 2명)</h3>
+      <div id="empathyList">로딩 중...</div>
+      <button onclick="goToStep(4, 'select_lock')">공감 확인</button>
     </div>
   </section>
 
   <!-- STEP 4: 결과 -->
-  <section id="step4" style="display:none;">
-    <h2>4️⃣ 결과</h2>
-    <p>리더십 점수: <span id="scoreResult">0</span></p>
+  <section id="step4" class="stage">
+    <h2>4️⃣ 이번 라운드 결과</h2>
+    <p>획득 리더십 점수: <strong id="roundScore">0</strong></p>
+    <p>현재 누적 점수: <strong id="totalScore">0</strong></p>
     <p>에너지:</p>
-    <div class="gauge-bar"><div id="gaugeFill" class="gauge-fill"></div></div>
-    <p style="text-align:right;"><strong><span id="gaugeValue">0</span> / 10</strong></p>
-    <button onclick="restart()">다음 라운드</button>
+    <div class="gauge-bar"><div id="gaugeFillResult" class="gauge-fill"></div></div>
+    <p style="text-align:right;"><strong><span id="gaugeValResult">0</span> / 10</strong></p>
+    <button onclick="resetGame()">다음 라운드</button>
   </section>
 
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
   <script>
     const config = {
       apiKey: "AIzaSyBhI_N0bPlhaBaNXiyIHHWX5KzIznPD9fs",
       authDomain: "leadershipg-v1.firebaseapp.com",
-      projectId: "leadershipg-v1",
-      storageBucket: "leadershipg-v1.firebasestorage.app",
-      messagingSenderId: "1069669847032",
-      appId: "1:1069669847032:web:db299884387f59c58b500d"
+      projectId: "leadershipg-v1"
     };
     firebase.initializeApp(config);
     const db = firebase.firestore();
+    const controlRef = db.collection("round_status").doc("control");
+    const currentRound = "round1";
 
     let currentUser = null;
     let selectedOption = null;
-    const round = "round1";
 
     function showStep(n) {
-      for (let i = 1; i <= 4; i++) {
-        document.getElementById(`step${i}`).style.display = i === n ? "block" : "none";
-      }
+      document.querySelectorAll(".stage").forEach(s => s.style.display = "none");
+      document.getElementById("step" + n).style.display = "block";
     }
 
     function login() {
       const empNo = document.getElementById("employeeNoInput").value.trim();
       if (!empNo) return alert("사번 입력");
       db.collection("users").where("employee_no", "==", empNo).get().then(snap => {
-        if (snap.empty) return alert("사번 없음");
+        if (snap.empty) return alert("사번이 없습니다.");
         currentUser = { id: snap.docs[0].id, ...snap.docs[0].data() };
-        db.collection("round_status").doc("control").get().then(doc => {
-          if (doc.data()?.login_lock) return alert("아직 로그인 할 수 없습니다.");
+
+        document.getElementById("userName").innerText = currentUser.name;
+        document.getElementById("userEmpNo").innerText = currentUser.employee_no;
+        document.getElementById("userInfo").style.display = "block";
+
+        controlRef.get().then(doc => {
+          if (doc.data()?.login_lock) return alert("아직 로그인 제어가 열리지 않았습니다.");
           showStep(2);
         });
       });
     }
 
-    function goToStep(n) {
-      const keyMap = { 2: "explain_lock", 3: "select_lock", 4: "result_lock" };
-      const key = keyMap[n];
-      db.collection("round_status").doc("control").get().then(doc => {
+    function goToStep(n, key) {
+      controlRef.get().then(doc => {
         if (doc.data()?.[key]) return alert("관리자 제어 중입니다.");
         showStep(n);
-        if (n === 4) watchEnergy();
+        if (n === 4) loadResults();
       });
     }
 
@@ -119,40 +122,48 @@
     }
 
     function submitChoice() {
-      if (!selectedOption) return alert("선택 먼저 하세요");
-      db.collection("user_choices").doc(round).collection("data")
-        .doc(currentUser.id).set({ selected_option: selectedOption }, { merge: true }).then(() => {
-          document.getElementById("afterSelect").style.display = "block";
+      if (!selectedOption) return alert("선택 먼저 해주세요.");
+      db.collection("user_choices").doc(currentRound)
+        .collection("data").doc(currentUser.id)
+        .set({ selected_option: selectedOption, empathy_received: 0 }, { merge: true })
+        .then(() => {
+          document.getElementById("bigLetter").innerText = selectedOption;
+          document.getElementById("confirmView").style.display = "block";
           loadEmpathyList();
         });
     }
 
     function loadEmpathyList() {
       db.collection("users").where("team_id", "==", currentUser.team_id).get().then(snap => {
-        const box = document.getElementById("empathyList");
-        box.innerHTML = "";
+        const container = document.getElementById("empathyList");
+        container.innerHTML = "";
         snap.forEach(doc => {
           if (doc.id !== currentUser.id) {
-            const d = doc.data();
-            const cb = document.createElement("input");
-            cb.type = "checkbox"; cb.name = "empathy"; cb.value = doc.id;
-            box.appendChild(cb);
-            box.append(" " + d.name);
-            box.appendChild(document.createElement("br"));
+            const u = doc.data();
+            const box = document.createElement("div");
+            box.innerHTML = `<label><input type="checkbox" value="${doc.id}" name="empathy" /> ${u.name}</label>`;
+            container.appendChild(box);
           }
         });
       });
     }
 
-    function watchEnergy() {
-      db.collection("users").doc(currentUser.id).onSnapshot(doc => {
-        const val = doc.data()?.energy || 0;
-        document.getElementById("gaugeFill").style.width = `${val * 10}%`;
-        document.getElementById("gaugeValue").innerText = val;
+    function loadResults() {
+      db.collection("users").doc(currentUser.id).get().then(doc => {
+        const u = doc.data();
+        const energy = u.energy ?? 0;
+        const score = u.leadership_score ?? 0;
+        document.getElementById("gaugeValResult").innerText = energy;
+        document.getElementById("totalScore").innerText = score;
+        document.getElementById("roundScore").innerText = "+5"; // 추후 계산 기반 처리
+        document.getElementById("gaugeFillResult").style.width = (energy * 10) + "%";
       });
     }
 
-    function restart() {
+    function resetGame() {
+      selectedOption = null;
+      document.getElementById("selectedDisplay").innerText = "없음";
+      document.getElementById("confirmView").style.display = "none";
       showStep(1);
     }
   </script>
