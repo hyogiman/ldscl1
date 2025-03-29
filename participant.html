@@ -52,20 +52,20 @@
   <h1>🎮 리더십 게임</h1>
   <div id="currentRoundBanner">Round 1</div>
 
-  <button id="scoreButton" style="display:none;" onclick="toggleScoreTable()">📊 점수 확인</button>
+  <button id="scoreButton" style="display:none;">📊 점수 확인</button>
 
   <!-- STEP 1 -->
   <section id="step1">
     <h2>1️⃣ 사번 로그인</h2>
     <input id="employeeNoInput" placeholder="사번 입력" />
-    <button onclick="login()">로그인</button>
+    <button id="loginBtn">로그인</button>
   </section>
 
   <!-- STEP 2 -->
   <section id="step2" style="display:none;">
     <h2>2️⃣ 상황 설명</h2>
     <p>교육자가 화면으로 상황을 안내합니다.</p>
-    <button onclick="goToStep(3)">확인</button>
+    <button id="step2Confirm">확인</button>
   </section>
 
   <!-- STEP 3 -->
@@ -78,14 +78,14 @@
       <button onclick="selectOption('D')">D</button>
     </div>
     <p>선택: <strong id="selectedDisplay">없음</strong></p>
-    <button onclick="submitChoice()">확인</button>
+    <button id="submitChoiceBtn">확인</button>
   </section>
 
-  <!-- STEP 3.5 공감 -->
+  <!-- STEP 3.5 -->
   <section id="step3_5" style="display:none;">
     <h3>공감하는 참가자 선택 (최대 2명)</h3>
     <div id="empathyList">로딩 중...</div>
-    <button onclick="goToStep(4)">확인</button>
+    <button id="step3_5Confirm">확인</button>
   </section>
 
   <!-- STEP 4 -->
@@ -96,7 +96,7 @@
       <tr><th>리더십 점수</th><td><span id="scoreResult">0</span></td></tr>
     </table>
     <div class="gauge-bar"><div id="gaugeFill" class="gauge-fill"></div></div>
-    <button onclick="restart()">다음 라운드로 이동</button>
+    <button id="nextRoundBtn">다음 라운드로 이동</button>
   </section>
 
   <!-- 점수표 -->
@@ -125,5 +125,128 @@
     let selectedOption = null;
     let currentRound = 1;
 
+    const scoreButton = document.getElementById("scoreButton");
+    const loginBtn = document.getElementById("loginBtn");
+    const step2Confirm = document.getElementById("step2Confirm");
+    const submitChoiceBtn = document.getElementById("submitChoiceBtn");
+    const step3_5Confirm = document.getElementById("step3_5Confirm");
+    const nextRoundBtn = document.getElementById("nextRoundBtn");
+
+    loginBtn.addEventListener("click", login);
+    step2Confirm.addEventListener("click", () => goToStep(3));
+    step3_5Confirm.addEventListener("click", () => goToStep(4));
+    submitChoiceBtn.addEventListener("click", submitChoice);
+    nextRoundBtn.addEventListener("click", restart);
+    scoreButton.addEventListener("click", toggleScoreTable);
+
     function showStep(n) {
-      for (let
+      for (let i = 1; i <= 4; i++) {
+        document.getElementById(`step${i}`).style.display = i === n ? "block" : "none";
+      }
+      document.getElementById("step3_5").style.display = "none";
+    }
+
+    function login() {
+      const empNo = document.getElementById("employeeNoInput").value.trim();
+      if (!empNo) return alert("사번을 입력하세요");
+
+      db.collection("users").where("employee_no", "==", empNo).get().then(snap => {
+        if (snap.empty) return alert("사번 없음");
+        currentUser = { id: snap.docs[0].id, ...snap.docs[0].data() };
+        scoreButton.style.display = "inline-block";
+        getRound();
+        db.collection("round_status").doc("control").get().then(doc => {
+          if (doc.data()?.login_lock) return alert("관리자 제어 중입니다.");
+          showStep(2);
+        });
+      });
+    }
+
+    function getRound() {
+      db.collection("game_state").doc("round_info").onSnapshot(doc => {
+        currentRound = doc.data()?.current || 1;
+        document.getElementById("currentRoundBanner").innerText = `Round ${currentRound}`;
+      });
+    }
+
+    function goToStep(n) {
+      const keyMap = { 2: "explain_lock", 3: "select_lock", 4: "result_lock" };
+      const lock = keyMap[n];
+      db.collection("round_status").doc("control").get().then(doc => {
+        if (doc.data()?.[lock]) return alert("관리자 제어 중입니다.");
+        if (n === 4) watchEnergy();
+        showStep(n);
+      });
+    }
+
+    function selectOption(opt) {
+      selectedOption = opt;
+      document.getElementById("selectedDisplay").innerText = opt;
+    }
+
+    function submitChoice() {
+      if (!selectedOption) return alert("선택 먼저 하세요");
+      window.open(`data:text/html,<html><body style='font-size:5em;text-align:center;margin-top:30vh;'>${selectedOption}</body></html>`, "_blank");
+
+      db.collection("user_choices")
+        .doc(`round${currentRound}`).collection("data")
+        .doc(currentUser.id)
+        .set({ selected_option: selectedOption }, { merge: true }).then(() => {
+          showStep(0);
+          document.getElementById("step3_5").style.display = "block";
+          loadEmpathyList();
+        });
+    }
+
+    function loadEmpathyList() {
+      db.collection("users").where("team_id", "==", currentUser.team_id).get().then(snap => {
+        const box = document.getElementById("empathyList");
+        box.innerHTML = "";
+        snap.forEach(doc => {
+          if (doc.id !== currentUser.id) {
+            const d = doc.data();
+            const cb = document.createElement("input");
+            cb.type = "checkbox"; cb.name = "empathy"; cb.value = doc.id;
+            box.appendChild(cb); box.append(" " + d.name);
+            box.appendChild(document.createElement("br"));
+          }
+        });
+      });
+    }
+
+    function watchEnergy() {
+      db.collection("users").doc(currentUser.id).onSnapshot(doc => {
+        const data = doc.data();
+        const energy = data?.energy || 0;
+        const score = data?.leadership_score || 0;
+        document.getElementById("gaugeFill").style.width = `${energy * 10}%`;
+        document.getElementById("gaugeValue").innerText = energy;
+        document.getElementById("scoreResult").innerText = score;
+      });
+    }
+
+    function restart() {
+      selectedOption = null;
+      showStep(1);
+    }
+
+    function toggleScoreTable() {
+      const box = document.getElementById("scoreTableBox");
+      const tbl = document.getElementById("scoreTable");
+      box.style.display = box.style.display === "block" ? "none" : "block";
+      if (box.style.display === "block") {
+        tbl.innerHTML = "불러오는 중...";
+        let html = "<table><thead><tr><th>라운드</th><th>선택</th><th>공감</th></tr></thead><tbody>";
+        const base = db.collection("user_choices");
+        for (let i = 1; i <= 4; i++) {
+          base.doc(`round${i}`).collection("data").doc(currentUser.id).get().then(doc => {
+            const d = doc.data();
+            html += `<tr><td>Round ${i}</td><td>${d?.selected_option || '-'}</td><td>${d?.empathy_received || 0}</td></tr>`;
+            tbl.innerHTML = html + "</tbody></table>";
+          });
+        }
+      }
+    }
+  </script>
+</body>
+</html>
