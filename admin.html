@@ -2,19 +2,19 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>리더십 게임 관리자</title>
   <link rel="stylesheet" href="css/style.css" />
   <style>
     .menu-tabs {
       display: flex;
+      flex-wrap: wrap;
       gap: 10px;
       margin-bottom: 20px;
-      flex-wrap: wrap;
     }
     .menu-tabs button {
       padding: 10px 16px;
-      background-color: #eee;
+      background: #eee;
       border: none;
       border-radius: 8px;
       cursor: pointer;
@@ -23,21 +23,15 @@
       background-color: var(--primary-color);
       color: white;
     }
-    .admin-tab {
-      display: none;
-    }
-    .admin-tab.active {
-      display: block;
-    }
-    .edit-input {
-      width: 100px;
-    }
+    .admin-tab { display: none; }
+    .admin-tab.active { display: block; }
+    .edit-input { width: 100px; }
   </style>
 </head>
 <body>
   <h1>🧠 리더십 게임 관리자</h1>
 
-  <!-- 🔀 탭 메뉴 -->
+  <!-- 탭 메뉴 -->
   <div class="menu-tabs">
     <button class="active" onclick="showTab('controlTab', this)">🎮 게임 제어</button>
     <button onclick="showTab('teamTab', this)">👥 팀 관리</button>
@@ -51,20 +45,19 @@
     <p>현재 라운드: <strong id="roundDisplay">-</strong></p>
     <button onclick="updateRound(-1)">⬅️ 이전</button>
     <button onclick="updateRound(1)">➡️ 다음</button>
-    <br /><br />
     <table>
       <thead><tr><th>단계</th><th>상태</th><th>제어</th></tr></thead>
       <tbody>
-        <tr><td>1️⃣ 로그인</td><td id="login_lock_status">-</td>
+        <tr><td>1️⃣ 로그인</td><td id="login_lock_status_text">-</td>
           <td><button onclick="setControl('login_lock', true)">🔒</button>
               <button onclick="setControl('login_lock', false)">🔓</button></td></tr>
-        <tr><td>2️⃣ 설명</td><td id="explain_lock_status">-</td>
+        <tr><td>2️⃣ 설명</td><td id="explain_lock_status_text">-</td>
           <td><button onclick="setControl('explain_lock', true)">🔒</button>
               <button onclick="setControl('explain_lock', false)">🔓</button></td></tr>
-        <tr><td>3️⃣ 선택</td><td id="select_lock_status">-</td>
+        <tr><td>3️⃣ 선택</td><td id="select_lock_status_text">-</td>
           <td><button onclick="setControl('select_lock', true)">🔒</button>
               <button onclick="setControl('select_lock', false)">🔓</button></td></tr>
-        <tr><td>4️⃣ 결과</td><td id="result_lock_status">-</td>
+        <tr><td>4️⃣ 결과</td><td id="result_lock_status_text">-</td>
           <td><button onclick="setControl('result_lock', true)">🔒</button>
               <button onclick="setControl('result_lock', false)">🔓</button></td></tr>
       </tbody>
@@ -123,7 +116,7 @@
     const roundRef = db.collection("game_state").doc("round_info");
 
     function showTab(id, btn) {
-      document.querySelectorAll(".admin-tab").forEach(el => el.classList.remove("active"));
+      document.querySelectorAll(".admin-tab").forEach(tab => tab.classList.remove("active"));
       document.querySelector(`#${id}`).classList.add("active");
       document.querySelectorAll(".menu-tabs button").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
@@ -138,7 +131,7 @@
       controlRef.onSnapshot(doc => {
         const data = doc.data() || {};
         ['login_lock', 'explain_lock', 'select_lock', 'result_lock'].forEach(key => {
-          document.getElementById(`${key}_status`).innerText = data[key] ? '🔒' : '🔓';
+          document.getElementById(`${key}_status_text`).innerText = data[key] ? '잠금 중' : '해제됨';
         });
       });
     }
@@ -183,7 +176,7 @@
       teams.forEach(team => {
         tbody.innerHTML += `
           <tr>
-            <td><input id="teamNameInput_${team.id}" value="${team.name}" class="edit-input" /></td>
+            <td><input id="teamNameInput_${team.id}" value="${team.name}" class="edit-input"/></td>
             <td><button onclick="updateTeam('${team.id}')">수정</button></td>
             <td><button onclick="deleteTeam('${team.id}')">삭제</button></td>
           </tr>
@@ -247,37 +240,55 @@
 
     function updateParticipant(id, teamId) {
       const name = document.getElementById("name_" + id).value;
-      const empNo = document.getElementById("emp_" + id).value;
+      const emp = document.getElementById("emp_" + id).value;
       db.collection("users").doc(id).update({
         name: name,
-        employee_no: empNo
+        employee_no: emp
       }).then(() => {
-        alert("✅ 수정 완료");
+        alert("✅ 참가자 수정 완료");
         loadParticipants(teamId);
       });
     }
 
     function deleteParticipant(id, teamId) {
-      if (!confirm("참가자를 삭제할까요?")) return;
+      if (!confirm("삭제할까요?")) return;
       db.collection("users").doc(id).delete().then(() => loadParticipants(teamId));
     }
 
-    function loadResults() {
+    async function loadResults() {
       const teamId = document.getElementById("resultTeamSelect").value;
-      if (!teamId) return alert("팀을 선택하세요");
+      if (!teamId) return alert("팀 선택하세요");
 
-      db.collection("users").where("team_id", "==", teamId).get().then(snap => {
-        let html = "<table><thead><tr><th>이름</th><th>사번</th><th>에너지</th><th>리더십</th></tr></thead><tbody>";
-        snap.forEach(doc => {
-          const d = doc.data();
-          html += `<tr><td>${d.name}</td><td>${d.employee_no}</td><td>${d.energy}</td><td>${d.leadership_score}</td></tr>`;
-        });
-        html += "</tbody></table>";
-        document.getElementById("resultTable").innerHTML = html;
-      });
+      const userSnap = await db.collection("users").where("team_id", "==", teamId).get();
+      const userMap = {};
+      userSnap.forEach(doc => userMap[doc.id] = doc.data());
+
+      let html = `<table><thead>
+        <tr><th>이름</th><th>사번</th><th>라운드</th><th>선택</th><th>공감</th><th>리더십</th><th>에너지</th></tr>
+      </thead><tbody>`;
+
+      for (const uid in userMap) {
+        const user = userMap[uid];
+        for (let i = 1; i <= 4; i++) {
+          const choiceRef = db.collection("user_choices").doc(`round${i}`).collection("data").doc(uid);
+          const choiceSnap = await choiceRef.get();
+          const choice = choiceSnap.data();
+          html += `<tr>
+            <td>${user.name}</td>
+            <td>${user.employee_no}</td>
+            <td>Round ${i}</td>
+            <td>${choice?.selected_option || '-'}</td>
+            <td>${choice?.empathy_received || 0}</td>
+            <td>${user.leadership_score}</td>
+            <td>${user.energy}</td>
+          </tr>`;
+        }
+      }
+
+      html += "</tbody></table>";
+      document.getElementById("resultTable").innerHTML = html;
     }
 
-    // 초기 실행
     watchControls();
     watchRound();
     loadTeams();
