@@ -2,251 +2,235 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>관리자 페이지</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>리더십 게임 관리자</title>
   <link rel="stylesheet" href="css/style.css" />
-  <style>
-    .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
-    .tabs button { padding: 10px; border: none; background: #ddd; cursor: pointer; }
-    .tabs button.active { background: var(--primary-color); color: white; }
-    .tab-section { display: none; }
-    .tab-section.active { display: block; }
-    .locked { color: red; font-weight: bold; }
-    .unlocked { color: green; font-weight: bold; }
-    .csv-table { margin-top: 20px; }
-    input[type="number"] { width: 80px; }
-  </style>
 </head>
 <body>
-  <h1>🧠 관리자 페이지</h1>
+  <h1>🧠 리더십 게임 관리자</h1>
 
-  <div class="tabs">
-    <button onclick="showTab('controlTab', this)" class="active">🔐 제어</button>
-    <button onclick="showTab('teamTab', this)">👥 팀 관리</button>
-    <button onclick="showTab('userTab', this)">👤 참가자 관리</button>
-    <button onclick="showTab('optionTab', this)">🎯 선택지 관리</button>
-    <button onclick="showTab('resultTab', this)">📊 결과 보기</button>
-  </div>
-
-  <!-- 🔐 제어 탭 -->
-  <section id="controlTab" class="tab-section active">
-    <h2>🔐 라운드 제어</h2>
+  <!-- 🔐 제어 패널 -->
+  <section>
+    <h2>🎮 게임 제어</h2>
     <table>
-      <tr><th>단계</th><th>상태</th><th>제어</th></tr>
-      <tr><td>로그인</td><td id="login_lock_status">-</td>
-        <td><button onclick="setControl('login_lock', true)">🔒</button>
-            <button onclick="setControl('login_lock', false)">🔓</button></td></tr>
-      <tr><td>설명</td><td id="explain_lock_status">-</td>
-        <td><button onclick="setControl('explain_lock', true)">🔒</button>
-            <button onclick="setControl('explain_lock', false)">🔓</button></td></tr>
-      <tr><td>선택</td><td id="select_lock_status">-</td>
-        <td><button onclick="setControl('select_lock', true)">🔒</button>
-            <button onclick="setControl('select_lock', false)">🔓</button></td></tr>
-      <tr><td>결과</td><td id="result_lock_status">-</td>
-        <td><button onclick="setControl('result_lock', true)">🔒</button>
-            <button onclick="setControl('result_lock', false)">🔓</button></td></tr>
+      <thead><tr><th>단계</th><th>상태</th><th>제어</th></tr></thead>
+      <tbody>
+        <tr><td>로그인 제어</td><td id="login_lock_status">⏳</td>
+          <td><button onclick="setControl('login_lock', true)">🔒</button>
+              <button onclick="setControl('login_lock', false)">🔓</button></td>
+        </tr>
+        <tr><td>설명 제어</td><td id="explain_lock_status">⏳</td>
+          <td><button onclick="setControl('explain_lock', true)">🔒</button>
+              <button onclick="setControl('explain_lock', false)">🔓</button></td>
+        </tr>
+        <tr><td>선택 제어</td><td id="select_lock_status">⏳</td>
+          <td><button onclick="setControl('select_lock', true)">🔒</button>
+              <button onclick="setControl('select_lock', false)">🔓</button></td>
+        </tr>
+        <tr><td>라운드 종료 제어</td><td id="result_lock_status">⏳</td>
+          <td><button onclick="setControl('result_lock', true)">🔒</button>
+              <button onclick="setControl('result_lock', false)">🔓</button></td>
+        </tr>
+      </tbody>
     </table>
   </section>
 
+  <!-- 🧭 라운드 관리 -->
+  <section>
+    <h2>🔄 현재 라운드</h2>
+    <p>현재 라운드: <strong id="roundDisplay">불러오는 중...</strong></p>
+    <button onclick="updateRound(-1)">⬅️ 이전 라운드</button>
+    <button onclick="updateRound(1)">➡️ 다음 라운드</button>
+  </section>
+
   <!-- 👥 팀 관리 -->
-  <section id="teamTab" class="tab-section">
+  <section>
     <h2>👥 팀 관리</h2>
-    <input id="teamNameInput" placeholder="팀 이름" />
-    <button onclick="addTeam()">추가</button>
+    <input type="text" id="teamNameInput" placeholder="팀 이름" />
+    <button onclick="addTeam()">팀 추가</button>
     <table><thead><tr><th>팀명</th><th>수정</th><th>삭제</th></tr></thead>
       <tbody id="teamTableBody"></tbody>
     </table>
   </section>
 
   <!-- 👤 참가자 관리 -->
-  <section id="userTab" class="tab-section">
-    <h2>👤 참가자 등록</h2>
-    <select id="teamSelect"></select><br/>
-    <input id="employeeNoInput" placeholder="사번" />
-    <input id="nameInput" placeholder="이름" />
-    <button onclick="addUser()">등록</button>
-    <table><thead><tr><th>이름</th><th>사번</th><th>삭제</th></tr></thead>
-      <tbody id="userTableBody"></tbody>
+  <section>
+    <h2>👤 참가자 관리</h2>
+    <select id="teamSelect"></select><br />
+    <input type="text" id="employeeNoInput" placeholder="사번" />
+    <input type="text" id="nameInput" placeholder="이름" />
+    <button onclick="addParticipant()">참가자 추가</button>
+    <table><thead><tr><th>이름</th><th>사번</th><th>에너지</th><th>점수</th><th>삭제</th></tr></thead>
+      <tbody id="participantTableBody"></tbody>
     </table>
   </section>
 
-  <!-- 🎯 선택지 관리 -->
-  <section id="optionTab" class="tab-section">
-    <h2>🎯 선택지 설정</h2>
-    <select id="roundSelect" onchange="loadOptions()">
-      <option value="round1">Round 1</option>
-      <option value="round2">Round 2</option>
-      <option value="round3">Round 3</option>
-      <option value="round4">Round 4</option>
-    </select>
-    <table>
-      <thead><tr><th>선택지</th><th>리더십 +</th><th>에너지 -</th><th>저장</th></tr></thead>
-      <tbody id="optionTableBody"></tbody>
-    </table>
-  </section>
-
-  <!-- 📊 결과 -->
-  <section id="resultTab" class="tab-section">
+  <!-- 📊 결과 보기 -->
+  <section>
     <h2>📊 팀별 결과 보기</h2>
-    <button onclick="loadResults()">불러오기</button>
-    <div id="resultTable" class="csv-table"></div>
+    <select id="resultTeamSelect"></select>
+    <button onclick="loadResults()">결과 조회</button>
+    <div id="resultTable"></div>
   </section>
 
-  <!-- Firebase -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+
   <script>
     const config = {
       apiKey: "AIzaSyBhI_N0bPlhaBaNXiyIHHWX5KzIznPD9fs",
       authDomain: "leadershipg-v1.firebaseapp.com",
-      projectId: "leadershipg-v1"
+      projectId: "leadershipg-v1",
+      storageBucket: "leadershipg-v1.firebasestorage.app",
+      messagingSenderId: "1069669847032",
+      appId: "1:1069669847032:web:db299884387f59c58b500d"
     };
     firebase.initializeApp(config);
     const db = firebase.firestore();
-    const controlRef = db.collection("round_status").doc("control");
 
-    function showTab(id, btn) {
-      document.querySelectorAll(".tab-section").forEach(s => s.classList.remove("active"));
-      document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
-      document.getElementById(id).classList.add("active");
-      btn.classList.add("active");
-    }
+    const controlRef = db.collection("round_status").doc("control");
+    const roundRef = db.collection("game_state").doc("round_info");
 
     function setControl(key, val) {
       const update = {}; update[key] = val;
       controlRef.set(update, { merge: true });
     }
 
-    controlRef.onSnapshot(doc => {
-      const data = doc.data() || {};
-      ["login_lock", "explain_lock", "select_lock", "result_lock"].forEach(k => {
-        const el = document.getElementById(k + "_status");
-        el.innerHTML = data[k] ? '<span class="locked">🔒 잠금</span>' : '<span class="unlocked">🔓 해제</span>';
+    function watchControls() {
+      controlRef.onSnapshot(doc => {
+        const data = doc.data() || {};
+        ['login_lock', 'explain_lock', 'select_lock', 'result_lock'].forEach(key => {
+          document.getElementById(`${key}_status`).innerText = data[key] ? '🔒 잠금' : '🔓 해제됨';
+        });
       });
-    });
+    }
+
+    function updateRound(change) {
+      roundRef.get().then(doc => {
+        let current = doc.data()?.current || 1;
+        current = Math.max(1, current + change);
+        roundRef.set({ current });
+      });
+    }
+
+    function watchRound() {
+      roundRef.onSnapshot(doc => {
+        const r = doc.data()?.current || 1;
+        document.getElementById("roundDisplay").innerText = r;
+      });
+    }
 
     function addTeam() {
       const name = document.getElementById("teamNameInput").value.trim();
-      if (!name) return;
-      db.collection("teams").add({ name }).then(loadTeams);
-      document.getElementById("teamNameInput").value = "";
+      if (!name) return alert("팀명을 입력하세요");
+      db.collection("teams").add({ name }).then(() => {
+        document.getElementById("teamNameInput").value = "";
+        loadTeams();
+      });
     }
 
     async function loadTeams() {
       const tbody = document.getElementById("teamTableBody");
       const select = document.getElementById("teamSelect");
+      const resultSelect = document.getElementById("resultTeamSelect");
       tbody.innerHTML = "";
-      select.innerHTML = "<option value=''>-- 선택 --</option>";
+      select.innerHTML = "<option value=''>-- 팀 선택 --</option>";
+      resultSelect.innerHTML = "<option value=''>-- 팀 선택 --</option>";
+
       const snap = await db.collection("teams").get();
-      const teams = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      teams.sort((a, b) => b.name.localeCompare(a.name));
+      const teams = [];
+      snap.forEach(doc => teams.push({ id: doc.id, ...doc.data() }));
+      teams.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+
       teams.forEach(team => {
         tbody.innerHTML += `
-          <tr><td><input id="t_${team.id}" value="${team.name}" /></td>
-          <td><button onclick="updateTeam('${team.id}')">수정</button></td>
-          <td><button onclick="deleteTeam('${team.id}')">삭제</button></td></tr>`;
+          <tr>
+            <td><input id="teamNameInput_${team.id}" value="${team.name}" /></td>
+            <td><button onclick="updateTeam('${team.id}')">수정</button></td>
+            <td><button onclick="deleteTeam('${team.id}')">삭제</button></td>
+          </tr>
+        `;
         select.innerHTML += `<option value="${team.id}">${team.name}</option>`;
+        resultSelect.innerHTML += `<option value="${team.id}">${team.name}</option>`;
       });
     }
 
     function updateTeam(id) {
-      const name = document.getElementById("t_" + id).value.trim();
-      db.collection("teams").doc(id).update({ name }).then(() => alert("수정됨"));
-    }
-
-    function deleteTeam(id) {
-      db.collection("teams").doc(id).delete().then(loadTeams);
-    }
-
-    function addUser() {
-      const teamId = document.getElementById("teamSelect").value;
-      const empNo = document.getElementById("employeeNoInput").value.trim();
-      const name = document.getElementById("nameInput").value.trim();
-      if (!teamId || !empNo || !name) return;
-      db.collection("users").add({
-        team_id: teamId, employee_no: empNo, name,
-        energy: 10, leadership_score: 0
-      }).then(() => {
-        document.getElementById("employeeNoInput").value = "";
-        document.getElementById("nameInput").value = "";
-        loadUsers(teamId);
+      const name = document.getElementById("teamNameInput_" + id).value.trim();
+      if (!name) return alert("팀명을 입력하세요");
+      db.collection("teams").doc(id).update({ name }).then(() => {
+        alert("✅ 수정 완료"); loadTeams();
       });
     }
 
-    function loadUsers(teamId) {
-      const tbody = document.getElementById("userTableBody");
+    function deleteTeam(id) {
+      if (!confirm("이 팀을 삭제할까요?")) return;
+      db.collection("teams").doc(id).delete().then(loadTeams);
+    }
+
+    function addParticipant() {
+      const teamId = document.getElementById("teamSelect").value;
+      const empNo = document.getElementById("employeeNoInput").value.trim();
+      const name = document.getElementById("nameInput").value.trim();
+      if (!teamId || !empNo || !name) return alert("모든 정보를 입력하세요");
+
+      db.collection("users").add({
+        team_id: teamId,
+        employee_no: empNo,
+        name: name,
+        energy: 5,
+        leadership_score: 0
+      }).then(() => {
+        document.getElementById("employeeNoInput").value = "";
+        document.getElementById("nameInput").value = "";
+        loadParticipants(teamId);
+      });
+    }
+
+    function loadParticipants(teamId) {
+      const tbody = document.getElementById("participantTableBody");
       tbody.innerHTML = "";
       db.collection("users").where("team_id", "==", teamId).get().then(snap => {
         snap.forEach(doc => {
           const u = doc.data();
-          tbody.innerHTML += `<tr>
-            <td>${u.name}</td><td>${u.employee_no}</td>
-            <td><button onclick="deleteUser('${doc.id}', '${teamId}')">삭제</button></td></tr>`;
-        });
-      });
-    }
-
-    function deleteUser(id, teamId) {
-      db.collection("users").doc(id).delete().then(() => loadUsers(teamId));
-    }
-
-    document.getElementById("teamSelect").addEventListener("change", e => {
-      const teamId = e.target.value;
-      if (teamId) loadUsers(teamId);
-    });
-
-    function loadOptions() {
-      const round = document.getElementById("roundSelect").value;
-      const tbody = document.getElementById("optionTableBody");
-      tbody.innerHTML = "";
-      db.collection("rounds").doc(round).get().then(doc => {
-        const opts = doc.data()?.options || {};
-        ["A", "B", "C", "D"].forEach(key => {
-          const opt = opts[key] || { leadership: 0, energy: 0 };
           tbody.innerHTML += `
             <tr>
-              <td>${key}</td>
-              <td><input type="number" id="${key}_l" value="${opt.leadership}" /></td>
-              <td><input type="number" id="${key}_e" value="${opt.energy}" /></td>
-              <td><button onclick="saveOption('${round}', '${key}')">저장</button></td>
-            </tr>`;
+              <td>${u.name}</td>
+              <td>${u.employee_no}</td>
+              <td>${u.energy}</td>
+              <td>${u.leadership_score}</td>
+              <td><button onclick="deleteParticipant('${doc.id}', '${teamId}')">삭제</button></td>
+            </tr>
+          `;
         });
       });
     }
 
-    function saveOption(round, key) {
-      const l = parseInt(document.getElementById(key + "_l").value);
-      const e = parseInt(document.getElementById(key + "_e").value);
-      db.collection("rounds").doc(round).set({
-        options: { [key]: { leadership: l, energy: e } }
-      }, { merge: true }).then(() => alert(`${key} 저장됨`));
+    function deleteParticipant(id, teamId) {
+      if (!confirm("참가자를 삭제할까요?")) return;
+      db.collection("users").doc(id).delete().then(() => loadParticipants(teamId));
     }
 
-    async function loadResults() {
-      const snap = await db.collection("users").get();
-      const result = {};
-      snap.forEach(doc => {
-        const u = doc.data();
-        const team = u.team_id || "미분류";
-        if (!result[team]) result[team] = { count: 0, totalScore: 0, totalEnergy: 0 };
-        result[team].count++;
-        result[team].totalScore += u.leadership_score || 0;
-        result[team].totalEnergy += u.energy || 0;
+    function loadResults() {
+      const teamId = document.getElementById("resultTeamSelect").value;
+      if (!teamId) return alert("팀을 선택하세요");
+
+      db.collection("users").where("team_id", "==", teamId).get().then(snap => {
+        let html = "<table><thead><tr><th>이름</th><th>사번</th><th>에너지</th><th>리더십 점수</th></tr></thead><tbody>";
+        snap.forEach(doc => {
+          const d = doc.data();
+          html += `<tr><td>${d.name}</td><td>${d.employee_no}</td><td>${d.energy}</td><td>${d.leadership_score}</td></tr>`;
+        });
+        html += "</tbody></table>";
+        document.getElementById("resultTable").innerHTML = html;
       });
-
-      const box = document.getElementById("resultTable");
-      box.innerHTML = "<table><thead><tr><th>팀</th><th>인원</th><th>총 리더십</th><th>평균 에너지</th></tr></thead><tbody>";
-
-      for (const team in result) {
-        const t = result[team];
-        box.innerHTML += `<tr><td>${team}</td><td>${t.count}</td><td>${t.totalScore}</td><td>${(t.totalEnergy/t.count).toFixed(1)}</td></tr>`;
-      }
-
-      box.innerHTML += "</tbody></table>";
     }
 
+    // 실행
     loadTeams();
-    loadOptions();
+    watchControls();
+    watchRound();
   </script>
 </body>
 </html>
