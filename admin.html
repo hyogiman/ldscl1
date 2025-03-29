@@ -5,42 +5,74 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>리더십 게임 관리자</title>
   <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .menu-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .menu-tabs button {
+      padding: 10px 16px;
+      background-color: #eee;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .menu-tabs button.active {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    .admin-tab {
+      display: none;
+    }
+    .admin-tab.active {
+      display: block;
+    }
+    .edit-input {
+      width: 100px;
+    }
+  </style>
 </head>
 <body>
   <h1>🧠 리더십 게임 관리자</h1>
 
-  <!-- ✅ 라운드 표시 및 제어 -->
-  <section>
-    <h2>🔄 현재 라운드 제어</h2>
-    <p>현재 라운드: <strong id="roundDisplay">로딩중...</strong></p>
-    <button onclick="updateRound(-1)">⬅️ 이전 라운드</button>
-    <button onclick="updateRound(1)">➡️ 다음 라운드</button>
-  </section>
+  <!-- 🔀 탭 메뉴 -->
+  <div class="menu-tabs">
+    <button class="active" onclick="showTab('controlTab', this)">🎮 게임 제어</button>
+    <button onclick="showTab('teamTab', this)">👥 팀 관리</button>
+    <button onclick="showTab('userTab', this)">👤 참가자 관리</button>
+    <button onclick="showTab('resultTab', this)">📊 결과 보기</button>
+  </div>
 
-  <!-- ✅ 4단계 제어 기능 -->
-  <section>
-    <h2>🎮 제어 상태 관리</h2>
+  <!-- 🎮 게임 제어 -->
+  <section id="controlTab" class="admin-tab active">
+    <h2>🎮 게임 제어</h2>
+    <p>현재 라운드: <strong id="roundDisplay">-</strong></p>
+    <button onclick="updateRound(-1)">⬅️ 이전</button>
+    <button onclick="updateRound(1)">➡️ 다음</button>
+    <br /><br />
     <table>
       <thead><tr><th>단계</th><th>상태</th><th>제어</th></tr></thead>
       <tbody>
-        <tr><td>1️⃣ 로그인</td><td id="login_lock_status">...</td>
+        <tr><td>1️⃣ 로그인</td><td id="login_lock_status">-</td>
           <td><button onclick="setControl('login_lock', true)">🔒</button>
               <button onclick="setControl('login_lock', false)">🔓</button></td></tr>
-        <tr><td>2️⃣ 설명</td><td id="explain_lock_status">...</td>
+        <tr><td>2️⃣ 설명</td><td id="explain_lock_status">-</td>
           <td><button onclick="setControl('explain_lock', true)">🔒</button>
               <button onclick="setControl('explain_lock', false)">🔓</button></td></tr>
-        <tr><td>3️⃣ 선택</td><td id="select_lock_status">...</td>
+        <tr><td>3️⃣ 선택</td><td id="select_lock_status">-</td>
           <td><button onclick="setControl('select_lock', true)">🔒</button>
               <button onclick="setControl('select_lock', false)">🔓</button></td></tr>
-        <tr><td>4️⃣ 라운드 종료</td><td id="result_lock_status">...</td>
+        <tr><td>4️⃣ 결과</td><td id="result_lock_status">-</td>
           <td><button onclick="setControl('result_lock', true)">🔒</button>
               <button onclick="setControl('result_lock', false)">🔓</button></td></tr>
       </tbody>
     </table>
   </section>
 
-  <!-- ✅ 팀 관리 -->
-  <section>
+  <!-- 👥 팀 관리 -->
+  <section id="teamTab" class="admin-tab">
     <h2>👥 팀 관리</h2>
     <input type="text" id="teamNameInput" placeholder="팀 이름" />
     <button onclick="addTeam()">팀 추가</button>
@@ -50,24 +82,24 @@
     </table>
   </section>
 
-  <!-- ✅ 참가자 관리 -->
-  <section>
+  <!-- 👤 참가자 관리 -->
+  <section id="userTab" class="admin-tab">
     <h2>👤 참가자 관리</h2>
-    <select id="teamSelect"></select><br />
+    <select id="teamSelect"></select>
     <input type="text" id="employeeNoInput" placeholder="사번" />
     <input type="text" id="nameInput" placeholder="이름" />
     <button onclick="addParticipant()">참가자 추가</button>
     <table>
-      <thead><tr><th>이름</th><th>사번</th><th>에너지</th><th>점수</th><th>삭제</th></tr></thead>
+      <thead><tr><th>이름</th><th>사번</th><th>에너지</th><th>점수</th><th>수정</th><th>삭제</th></tr></thead>
       <tbody id="participantTableBody"></tbody>
     </table>
   </section>
 
-  <!-- ✅ 결과 보기 -->
-  <section>
-    <h2>📊 팀별 결과 보기</h2>
+  <!-- 📊 결과 보기 -->
+  <section id="resultTab" class="admin-tab">
+    <h2>📊 팀별 결과</h2>
     <select id="resultTeamSelect"></select>
-    <button onclick="loadResults()">결과 조회</button>
+    <button onclick="loadResults()">조회</button>
     <div id="resultTable"></div>
   </section>
 
@@ -90,6 +122,13 @@
     const controlRef = db.collection("round_status").doc("control");
     const roundRef = db.collection("game_state").doc("round_info");
 
+    function showTab(id, btn) {
+      document.querySelectorAll(".admin-tab").forEach(el => el.classList.remove("active"));
+      document.querySelector(`#${id}`).classList.add("active");
+      document.querySelectorAll(".menu-tabs button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+    }
+
     function setControl(key, val) {
       const update = {}; update[key] = val;
       controlRef.set(update, { merge: true });
@@ -99,7 +138,7 @@
       controlRef.onSnapshot(doc => {
         const data = doc.data() || {};
         ['login_lock', 'explain_lock', 'select_lock', 'result_lock'].forEach(key => {
-          document.getElementById(`${key}_status`).innerText = data[key] ? '🔒 잠금' : '🔓 해제됨';
+          document.getElementById(`${key}_status`).innerText = data[key] ? '🔒' : '🔓';
         });
       });
     }
@@ -144,7 +183,7 @@
       teams.forEach(team => {
         tbody.innerHTML += `
           <tr>
-            <td><input id="teamNameInput_${team.id}" value="${team.name}" /></td>
+            <td><input id="teamNameInput_${team.id}" value="${team.name}" class="edit-input" /></td>
             <td><button onclick="updateTeam('${team.id}')">수정</button></td>
             <td><button onclick="deleteTeam('${team.id}')">삭제</button></td>
           </tr>
@@ -194,14 +233,27 @@
           const u = doc.data();
           tbody.innerHTML += `
             <tr>
-              <td>${u.name}</td>
-              <td>${u.employee_no}</td>
+              <td><input id="name_${doc.id}" value="${u.name}" class="edit-input" /></td>
+              <td><input id="emp_${doc.id}" value="${u.employee_no}" class="edit-input" /></td>
               <td>${u.energy}</td>
               <td>${u.leadership_score}</td>
+              <td><button onclick="updateParticipant('${doc.id}', '${teamId}')">수정</button></td>
               <td><button onclick="deleteParticipant('${doc.id}', '${teamId}')">삭제</button></td>
             </tr>
           `;
         });
+      });
+    }
+
+    function updateParticipant(id, teamId) {
+      const name = document.getElementById("name_" + id).value;
+      const empNo = document.getElementById("emp_" + id).value;
+      db.collection("users").doc(id).update({
+        name: name,
+        employee_no: empNo
+      }).then(() => {
+        alert("✅ 수정 완료");
+        loadParticipants(teamId);
       });
     }
 
@@ -215,7 +267,7 @@
       if (!teamId) return alert("팀을 선택하세요");
 
       db.collection("users").where("team_id", "==", teamId).get().then(snap => {
-        let html = "<table><thead><tr><th>이름</th><th>사번</th><th>에너지</th><th>리더십 점수</th></tr></thead><tbody>";
+        let html = "<table><thead><tr><th>이름</th><th>사번</th><th>에너지</th><th>리더십</th></tr></thead><tbody>";
         snap.forEach(doc => {
           const d = doc.data();
           html += `<tr><td>${d.name}</td><td>${d.employee_no}</td><td>${d.energy}</td><td>${d.leadership_score}</td></tr>`;
@@ -226,9 +278,13 @@
     }
 
     // 초기 실행
-    loadTeams();
     watchControls();
     watchRound();
+    loadTeams();
+    document.getElementById("teamSelect").addEventListener("change", e => {
+      const teamId = e.target.value;
+      if (teamId) loadParticipants(teamId);
+    });
   </script>
 </body>
 </html>
