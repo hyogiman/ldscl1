@@ -9,63 +9,61 @@
 <body>
   <h1>🧠 리더십 게임 관리자</h1>
 
-  <!-- 🔐 제어 패널 -->
+  <!-- ✅ 라운드 표시 및 제어 -->
   <section>
-    <h2>🎮 게임 제어</h2>
-    <table>
-      <thead><tr><th>단계</th><th>상태</th><th>제어</th></tr></thead>
-      <tbody>
-        <tr><td>로그인 제어</td><td id="login_lock_status">⏳</td>
-          <td><button onclick="setControl('login_lock', true)">🔒</button>
-              <button onclick="setControl('login_lock', false)">🔓</button></td>
-        </tr>
-        <tr><td>설명 제어</td><td id="explain_lock_status">⏳</td>
-          <td><button onclick="setControl('explain_lock', true)">🔒</button>
-              <button onclick="setControl('explain_lock', false)">🔓</button></td>
-        </tr>
-        <tr><td>선택 제어</td><td id="select_lock_status">⏳</td>
-          <td><button onclick="setControl('select_lock', true)">🔒</button>
-              <button onclick="setControl('select_lock', false)">🔓</button></td>
-        </tr>
-        <tr><td>라운드 종료 제어</td><td id="result_lock_status">⏳</td>
-          <td><button onclick="setControl('result_lock', true)">🔒</button>
-              <button onclick="setControl('result_lock', false)">🔓</button></td>
-        </tr>
-      </tbody>
-    </table>
-  </section>
-
-  <!-- 🧭 라운드 관리 -->
-  <section>
-    <h2>🔄 현재 라운드</h2>
-    <p>현재 라운드: <strong id="roundDisplay">불러오는 중...</strong></p>
+    <h2>🔄 현재 라운드 제어</h2>
+    <p>현재 라운드: <strong id="roundDisplay">로딩중...</strong></p>
     <button onclick="updateRound(-1)">⬅️ 이전 라운드</button>
     <button onclick="updateRound(1)">➡️ 다음 라운드</button>
   </section>
 
-  <!-- 👥 팀 관리 -->
+  <!-- ✅ 4단계 제어 기능 -->
+  <section>
+    <h2>🎮 제어 상태 관리</h2>
+    <table>
+      <thead><tr><th>단계</th><th>상태</th><th>제어</th></tr></thead>
+      <tbody>
+        <tr><td>1️⃣ 로그인</td><td id="login_lock_status">...</td>
+          <td><button onclick="setControl('login_lock', true)">🔒</button>
+              <button onclick="setControl('login_lock', false)">🔓</button></td></tr>
+        <tr><td>2️⃣ 설명</td><td id="explain_lock_status">...</td>
+          <td><button onclick="setControl('explain_lock', true)">🔒</button>
+              <button onclick="setControl('explain_lock', false)">🔓</button></td></tr>
+        <tr><td>3️⃣ 선택</td><td id="select_lock_status">...</td>
+          <td><button onclick="setControl('select_lock', true)">🔒</button>
+              <button onclick="setControl('select_lock', false)">🔓</button></td></tr>
+        <tr><td>4️⃣ 라운드 종료</td><td id="result_lock_status">...</td>
+          <td><button onclick="setControl('result_lock', true)">🔒</button>
+              <button onclick="setControl('result_lock', false)">🔓</button></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ✅ 팀 관리 -->
   <section>
     <h2>👥 팀 관리</h2>
     <input type="text" id="teamNameInput" placeholder="팀 이름" />
     <button onclick="addTeam()">팀 추가</button>
-    <table><thead><tr><th>팀명</th><th>수정</th><th>삭제</th></tr></thead>
+    <table>
+      <thead><tr><th>팀명</th><th>수정</th><th>삭제</th></tr></thead>
       <tbody id="teamTableBody"></tbody>
     </table>
   </section>
 
-  <!-- 👤 참가자 관리 -->
+  <!-- ✅ 참가자 관리 -->
   <section>
     <h2>👤 참가자 관리</h2>
     <select id="teamSelect"></select><br />
     <input type="text" id="employeeNoInput" placeholder="사번" />
     <input type="text" id="nameInput" placeholder="이름" />
     <button onclick="addParticipant()">참가자 추가</button>
-    <table><thead><tr><th>이름</th><th>사번</th><th>에너지</th><th>점수</th><th>삭제</th></tr></thead>
+    <table>
+      <thead><tr><th>이름</th><th>사번</th><th>에너지</th><th>점수</th><th>삭제</th></tr></thead>
       <tbody id="participantTableBody"></tbody>
     </table>
   </section>
 
-  <!-- 📊 결과 보기 -->
+  <!-- ✅ 결과 보기 -->
   <section>
     <h2>📊 팀별 결과 보기</h2>
     <select id="resultTeamSelect"></select>
@@ -117,7 +115,7 @@
     function watchRound() {
       roundRef.onSnapshot(doc => {
         const r = doc.data()?.current || 1;
-        document.getElementById("roundDisplay").innerText = r;
+        document.getElementById("roundDisplay").innerText = `Round ${r}`;
       });
     }
 
@@ -227,7 +225,7 @@
       });
     }
 
-    // 실행
+    // 초기 실행
     loadTeams();
     watchControls();
     watchRound();
