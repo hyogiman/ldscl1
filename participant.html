@@ -2,10 +2,33 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>리더십 게임 참가자</title>
   <link rel="stylesheet" href="css/style.css" />
   <style>
+    #currentRoundBanner {
+      background: #FFD166;
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-weight: bold;
+      display: inline-block;
+      margin-bottom: 12px;
+    }
+
+    #scoreButton {
+      position: fixed;
+      bottom: 15px;
+      right: 15px;
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      box-shadow: var(--shadow);
+      display: none;
+    }
+
     .gauge-bar {
       width: 100%; height: 20px;
       background: #eee;
@@ -18,18 +41,7 @@
       width: 0%;
       transition: width 0.3s ease-in-out;
     }
-    #scoreButton {
-      position: fixed;
-      top: 15px;
-      right: 15px;
-      background: var(--primary-color);
-      color: white;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 20px;
-      z-index: 1000;
-      font-size: 0.9rem;
-    }
+
     #scoreTableBox {
       display: none;
       margin-top: 20px;
@@ -38,37 +50,30 @@
       padding: 15px;
       box-shadow: var(--shadow);
     }
-    #currentRoundBanner {
-      background: #FFD166;
-      padding: 8px 12px;
-      border-radius: 12px;
-      font-weight: bold;
-      margin-bottom: 12px;
-      display: inline-block;
-    }
   </style>
 </head>
 <body>
   <h1>🎮 리더십 게임</h1>
-  <div id="currentRoundBanner">Round 1</div>
+  <div id="currentRoundBanner">Round -</div>
 
-  <button id="scoreButton" style="display:none;">📊 점수 확인</button>
+  <!-- 점수 확인 버튼 -->
+  <button id="scoreButton" onclick="toggleScoreTable()">📊 점수 확인</button>
 
-  <!-- STEP 1 -->
+  <!-- STEP 1: 로그인 -->
   <section id="step1">
     <h2>1️⃣ 사번 로그인</h2>
     <input id="employeeNoInput" placeholder="사번 입력" />
     <button id="loginBtn">로그인</button>
   </section>
 
-  <!-- STEP 2 -->
+  <!-- STEP 2: 설명 -->
   <section id="step2" style="display:none;">
     <h2>2️⃣ 상황 설명</h2>
     <p>교육자가 화면으로 상황을 안내합니다.</p>
-    <button id="step2Confirm">확인</button>
+    <button id="explainConfirmBtn">확인</button>
   </section>
 
-  <!-- STEP 3 -->
+  <!-- STEP 3: 선택 -->
   <section id="step3" style="display:none;">
     <h2>3️⃣ 선택하세요</h2>
     <div>
@@ -78,17 +83,17 @@
       <button onclick="selectOption('D')">D</button>
     </div>
     <p>선택: <strong id="selectedDisplay">없음</strong></p>
-    <button id="submitChoiceBtn">확인</button>
+    <button id="choiceConfirmBtn">확인</button>
   </section>
 
-  <!-- STEP 3.5 -->
+  <!-- STEP 3.5: 공감 -->
   <section id="step3_5" style="display:none;">
     <h3>공감하는 참가자 선택 (최대 2명)</h3>
     <div id="empathyList">로딩 중...</div>
-    <button id="step3_5Confirm">확인</button>
+    <button id="empathyConfirmBtn">확인</button>
   </section>
 
-  <!-- STEP 4 -->
+  <!-- STEP 4: 결과 -->
   <section id="step4" style="display:none;">
     <h2>4️⃣ 이번 라운드 결과</h2>
     <table>
@@ -99,16 +104,15 @@
     <button id="nextRoundBtn">다음 라운드로 이동</button>
   </section>
 
-  <!-- 점수표 -->
+  <!-- 점수 테이블 -->
   <section id="scoreTableBox">
-    <h2>📋 라운드별 점수 기록</h2>
+    <h2>📋 나의 라운드별 기록</h2>
     <div id="scoreTable"></div>
   </section>
 
-  <!-- Firebase SDK -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
-
   <script>
     const config = {
       apiKey: "AIzaSyBhI_N0bPlhaBaNXiyIHHWX5KzIznPD9fs",
@@ -125,39 +129,37 @@
     let selectedOption = null;
     let currentRound = 1;
 
-    const scoreButton = document.getElementById("scoreButton");
     const loginBtn = document.getElementById("loginBtn");
-    const step2Confirm = document.getElementById("step2Confirm");
-    const submitChoiceBtn = document.getElementById("submitChoiceBtn");
-    const step3_5Confirm = document.getElementById("step3_5Confirm");
+    const explainBtn = document.getElementById("explainConfirmBtn");
+    const choiceConfirmBtn = document.getElementById("choiceConfirmBtn");
+    const empathyConfirmBtn = document.getElementById("empathyConfirmBtn");
     const nextRoundBtn = document.getElementById("nextRoundBtn");
 
-    loginBtn.addEventListener("click", login);
-    step2Confirm.addEventListener("click", () => goToStep(3));
-    step3_5Confirm.addEventListener("click", () => goToStep(4));
-    submitChoiceBtn.addEventListener("click", submitChoice);
-    nextRoundBtn.addEventListener("click", restart);
-    scoreButton.addEventListener("click", toggleScoreTable);
+    loginBtn.onclick = login;
+    explainBtn.onclick = () => goToStep(3);
+    empathyConfirmBtn.onclick = () => goToStep(4);
+    choiceConfirmBtn.onclick = submitChoice;
+    nextRoundBtn.onclick = () => showStep(1);
 
     function showStep(n) {
       for (let i = 1; i <= 4; i++) {
-        document.getElementById(`step${i}`).style.display = i === n ? "block" : "none";
+        document.getElementById(`step${i}`).style.display = (i === n) ? "block" : "none";
       }
       document.getElementById("step3_5").style.display = "none";
     }
 
     function login() {
       const empNo = document.getElementById("employeeNoInput").value.trim();
-      if (!empNo) return alert("사번을 입력하세요");
+      if (!empNo) return alert("사번 입력");
 
       db.collection("users").where("employee_no", "==", empNo).get().then(snap => {
-        if (snap.empty) return alert("사번 없음");
+        if (snap.empty) return alert("존재하지 않는 사번입니다.");
         currentUser = { id: snap.docs[0].id, ...snap.docs[0].data() };
-        scoreButton.style.display = "inline-block";
         getRound();
         db.collection("round_status").doc("control").get().then(doc => {
-          if (doc.data()?.login_lock) return alert("관리자 제어 중입니다.");
+          if (doc.data()?.login_lock) return alert("🔒 교육담당자의 안내 후 진행됩니다.");
           showStep(2);
+          document.getElementById("scoreButton").style.display = "inline-block";
         });
       });
     }
@@ -170,11 +172,10 @@
     }
 
     function goToStep(n) {
-      const keyMap = { 2: "explain_lock", 3: "select_lock", 4: "result_lock" };
-      const lock = keyMap[n];
+      const lockKey = { 2: "explain_lock", 3: "select_lock", 4: "result_lock" }[n];
       db.collection("round_status").doc("control").get().then(doc => {
-        if (doc.data()?.[lock]) return alert("관리자 제어 중입니다.");
-        if (n === 4) watchEnergy();
+        if (doc.data()?.[lockKey]) return alert("🔒 교육담당자의 안내 후 이동 가능합니다.");
+        if (n === 4) watchMyStatus();
         showStep(n);
       });
     }
@@ -186,12 +187,14 @@
 
     function submitChoice() {
       if (!selectedOption) return alert("선택 먼저 하세요");
+
       window.open(`data:text/html,<html><body style='font-size:5em;text-align:center;margin-top:30vh;'>${selectedOption}</body></html>`, "_blank");
 
       db.collection("user_choices")
         .doc(`round${currentRound}`).collection("data")
         .doc(currentUser.id)
-        .set({ selected_option: selectedOption }, { merge: true }).then(() => {
+        .set({ selected_option: selectedOption }, { merge: true })
+        .then(() => {
           showStep(0);
           document.getElementById("step3_5").style.display = "block";
           loadEmpathyList();
@@ -214,7 +217,7 @@
       });
     }
 
-    function watchEnergy() {
+    function watchMyStatus() {
       db.collection("users").doc(currentUser.id).onSnapshot(doc => {
         const data = doc.data();
         const energy = data?.energy || 0;
@@ -223,11 +226,6 @@
         document.getElementById("gaugeValue").innerText = energy;
         document.getElementById("scoreResult").innerText = score;
       });
-    }
-
-    function restart() {
-      selectedOption = null;
-      showStep(1);
     }
 
     function toggleScoreTable() {
@@ -241,7 +239,7 @@
         for (let i = 1; i <= 4; i++) {
           base.doc(`round${i}`).collection("data").doc(currentUser.id).get().then(doc => {
             const d = doc.data();
-            html += `<tr><td>Round ${i}</td><td>${d?.selected_option || '-'}</td><td>${d?.empathy_received || 0}</td></tr>`;
+            html += `<tr><td>${i}</td><td>${d?.selected_option || '-'}</td><td>${d?.empathy_received || 0}</td></tr>`;
             tbl.innerHTML = html + "</tbody></table>";
           });
         }
